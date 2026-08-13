@@ -1,0 +1,217 @@
+/**
+ * convert-tokens.js
+ *
+ * Converts design tokens from two JSON source files into a single CSS file.
+ *
+ * Sources:
+ *   - material-theme.JSON          → colour roles  (schemes only; palettes/primitives excluded)
+ *   - design-tokens.tokens.json   → typography tokens (dr-prefixed Inter tokens)
+ *
+ * Output:
+ *   - design-tokens.css
+ *
+ * Usage:
+ *   node tokens/convert-tokens.js
+ */
+
+"use strict";
+
+const fs = require("fs");
+const path = require("path");
+
+// ─── Paths ────────────────────────────────────────────────────────────────────
+
+const DIR = __dirname;
+const COLOUR_SRC = path.join(DIR, "material-theme.JSON");
+const TYPOGRAPHY_SRC = path.join(DIR, "design-tokens.tokens.json");
+const OUTPUT = path.join(DIR, "design-tokens.css");
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** camelCase → kebab-case  e.g. "onPrimary" → "on-primary" */
+function toKebab(str) {
+  return str
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
+    .toLowerCase();
+}
+
+/** Display name with spaces → slug  e.g. "dr display large" → "dr-display-large" */
+function toSlug(name) {
+  return name.trim().replace(/\s+/g, "-").toLowerCase();
+}
+
+// ─── 1. Colour tokens ─────────────────────────────────────────────────────────
+
+/**
+ * Converts a single scheme object to an array of CSS variable declaration lines.
+ * { primary: "#2C6A45", onPrimary: "#FFFFFF", … }  →  ["  --color-primary: #2C6A45;", …]
+ */
+function schemeToVarLines(scheme) {
+  return Object.entries(scheme).map(([role, value]) => {
+    return "  --color-" + toKebab(role) + ": " + value + ";";
+  });
+}
+
+function buildColourBlock(schemes) {
+  // Map Material scheme names to the CSS selector we want to emit
+  const selectorMap = {
+    light: ":root",
+    dark: '[data-theme="dark"]',
+    "light-medium-contrast": '[data-contrast="medium"]',
+    "light-high-contrast": '[data-contrast="high"]',
+    "dark-medium-contrast": '[data-theme="dark"][data-contrast="medium"]',
+    "dark-high-contrast": '[data-theme="dark"][data-contrast="high"]',
+  };
+
+  const lines = [];
+
+  for (const [schemeName, schemeData] of Object.entries(schemes)) {
+    const selector = selectorMap[schemeName] || '[data-scheme="' + schemeName + '"]';
+    lines.push(selector + " {");
+    schemeToVarLines(schemeData).forEach(function (v) {
+      lines.push(v);
+    });
+    lines.push("}");
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+// ─── 2. Typography tokens ─────────────────────────────────────────────────────
+
+/** Emit dimension values with px units; everything else as-is. */
+function propToCSS(prop, value) {
+  var dimensionProps = [
+    "fontSize",
+    "lineHeight",
+    "letterSpacing",
+    "paragraphIndent",
+    "paragraphSpacing",
+  ];
+  if (dimensionProps.indexOf(prop) !== -1) {
+    return value === 0 ? "0" : value + "px";
+  }
+  return String(value);
+}
+
+/**
+ * The `typography` section is:
+ * {
+ *   "dr display large": { fontSize: {type, value}, fontFamily: {type, value}, … },
+ *   …
+ * }
+ * We skip the "material-theme" nested group (Roboto/Material defaults).
+ */
+function buildTypographyBlock(typography) {
+  var vars = [];
+
+  for (var tokenName in typography) {
+    if (!Object.prototype.hasOwnProperty.call(typography, tokenName)) continue;
+    if (tokenName === "material-theme") continue; // skip Roboto defaults
+
+    var props = typography[tokenName];
+    var slug = toSlug(tokenName); // e.g. "dr-display-large"
+
+    for (var prop in props) {
+      if (!Object.prototype.hasOwnProperty.call(props, prop)) continue;
+      var meta = props[prop];
+      if (!meta || typeof meta !== "object" || !("value" in meta)) continue;
+
+      var cssVar = "--type-" + slug + "-" + toKebab(prop);
+      var cssValue = propToCSS(prop, meta.value);
+      vars.push("  " + cssVar + ": " + cssValue + ";");
+    }
+
+    vars.push(""); // blank line between token groups
+  }
+
+  var lines = [];
+  lines.push(":root {");
+  lines.push("  /* Typography tokens — format: --type-{scale}-{property} */");
+  lines.push("");
+  vars.forEach(function (v) {
+    lines.push(v);
+  });
+  lines.push("}");
+
+  return lines.join("\n");
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
+function main() {
+  var colourData = JSON.parse(fs.readFileSync(COLOUR_SRC, "utf8"));
+  var typographyData = JSON.parse(fs.readFileSync(TYPOGRAPHY_SRC, "utf8"));
+
+  var schemes = colourData.schemes; // colour roles — palettes intentionally excluded
+  var typography = typographyData.typography; // flat per-property token objects
+
+  var colourBlock = buildColourBlock(schemes);
+  var typographyBlock = buildTypographyBlock(typography);
+
+  var now = new Date().toISOString();
+
+  var sections = [];
+
+  sections.push("/**");
+  sections.push(" * design-tokens.css");
+  sections.push(" * Auto-generated by tokens/convert-tokens.js — DO NOT EDIT BY HAND");
+  sections.push(" * Generated: " + now);
+  sections.push(" *");
+  sections.push(" * Contents:");
+  sections.push(" *   1. Colour roles  (material-theme.JSON > schemes)");
+  sections.push(" *        :root                                        Light (default)");
+  sections.push(' *        [data-theme="dark"]                          Dark');
+  sections.push(' *        [data-contrast="medium"]                     Light medium-contrast');
+  sections.push(' *        [data-contrast="high"]                       Light high-contrast');
+  sections.push(' *        [data-theme="dark"][data-contrast="medium"]  Dark medium-contrast');
+  sections.push(' *        [data-theme="dark"][data-contrast="high"]    Dark high-contrast');
+  sections.push(" *");
+  sections.push(" *   2. Typography  (design-tokens.tokens.json > typography)");
+  sections.push(' *        All "dr" scale tokens (Inter font) appended to :root');
+  sections.push(" */");
+  sections.push("");
+
+  sections.push("/* ================================================================");
+  sections.push("   1. COLOUR ROLES");
+  sections.push("   Source : material-theme.JSON > schemes");
+  sections.push("   Note   : Primitive palettes are intentionally excluded.");
+  sections.push("            The UI must always use these semantic role variables.");
+  sections.push("   ============================================================= */");
+  sections.push("");
+  sections.push(colourBlock);
+
+  sections.push("/* ================================================================");
+  sections.push("   2. TYPOGRAPHY");
+  sections.push("   Source : design-tokens.tokens.json > typography");
+  sections.push("   Usage  :");
+  sections.push("     font-size:      var(--type-dr-headline-large-font-size);");
+  sections.push("     font-weight:    var(--type-dr-headline-large-font-weight);");
+  sections.push("     line-height:    var(--type-dr-headline-large-line-height);");
+  sections.push("     letter-spacing: var(--type-dr-headline-large-letter-spacing);");
+  sections.push("   ============================================================= */");
+  sections.push("");
+  sections.push(typographyBlock);
+  sections.push("");
+
+  var output = sections.join("\n");
+  fs.writeFileSync(OUTPUT, output, "utf8");
+
+  // Print summary
+  var schemeCount = Object.keys(schemes).length;
+  var roleCount = Object.keys(Object.values(schemes)[0]).length;
+  var typoCount = Object.keys(typography).filter(function (k) {
+    return k !== "material-theme";
+  }).length;
+
+  console.log("");
+  console.log("  design-tokens.css generated successfully");
+  console.log("  Colour roles : " + schemeCount + " schemes x " + roleCount + " roles");
+  console.log("  Typography   : " + typoCount + " type scale tokens");
+  console.log("  Output path  : " + OUTPUT);
+  console.log("");
+}
+
+main();

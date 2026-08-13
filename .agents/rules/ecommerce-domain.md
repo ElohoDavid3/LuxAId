@@ -1,0 +1,188 @@
+# E-Commerce Domain Rules
+
+> **VERSION** : 1.0
+> **UPDATED** : 2026-08-13
+> **COMPANION** : `architecture.md` (state machine) · `database.md` (persistence, kobo) · `multi-tenancy.md` (tenant boundary) · `ai-behaviour.md` (AI grounding) · `error-handling.md` (domain errors)
+
+---
+
+## Purpose
+
+Define the canonical commerce vocabulary and business state rules. This file is the reference for entity boundaries and state definitions; sibling rule files build on it.
+
+---
+
+## Core Entities
+
+Every business-owned entity below MUST belong to a Business and be accessed only within an authorized business context (see `multi-tenancy.md`).
+
+| Entity                    | Owner                  | Key fields                                       | Primary relations                            |
+| ------------------------- | ---------------------- | ------------------------------------------------ | -------------------------------------------- |
+| `Business`                | — (root tenant)        | name, settings                                   | User (members), products, customers, orders  |
+| `User`                    | Business               | name, email, passwordHash                        | BusinessMembership                           |
+| `BusinessMembership`      | Business               | role/permissions, status                         | User, Business                               |
+| `BusinessSettings`        | Business               | policies, delivery defaults, notification config | Business                                     |
+| `Product`                 | Business               | name, description, price (kobo), status          | Business, ProductVariant, OrderItem          |
+| `ProductVariant`          | Product                | name, sku, attributes                            | Product, Inventory                           |
+| `Inventory`               | Product/ProductVariant | available, reserved, location                    | ProductVariant                               |
+| `Customer`                | Business               | name, email?, phone?                             | CustomerChannelIdentity, Conversation, Order |
+| `CustomerChannelIdentity` | Business               | channel, channel ID                              | Customer                                     |
+| `Conversation`            | Business               | control state, escalation state                  | Customer, Message, Escalation                |
+| `Message`                 | Conversation           | author, body, timestamp                          | Conversation                                 |
+| `KnowledgeSource`         | Business               | content, status, staleness                       | Business                                     |
+| `Escalation`              | Business               | reason, status, assignee                         | Conversation, User                           |
+| `Order`                   | Business               | status, total (kobo)                             | Customer, OrderItem, Payment, Delivery       |
+| `OrderItem`               | Order                  | product/variant, quantity, unit price (kobo)     | Order, Product, ProductVariant               |
+| `Payment`                 | Business               | reference, amount, currency, status              | Order                                        |
+| `Delivery`                | Business               | status, fee (kobo), carrier/tracking             | Order, DeliveryZone                          |
+| `DeliveryZone`            | Business               | name, fee (kobo), coverage                       | Business, Delivery                           |
+| `Automation`              | Business               | trigger, action, enabled                         | Business, AutomationExecution                |
+| `AutomationExecution`     | Automation             | status, result, timestamp                        | Automation                                   |
+| `Notification`            | Business               | channel, status, sentAt                          | Business, Order, Customer                    |
+| `AuditLog`                | Business               | event type, actor, timestamp, payload            | Business                                     |
+| `AnalyticsEvent`          | Business               | event type, properties, timestamp                | Business                                     |
+
+```
+- Price, totals, and delivery fees MUST be stored as integers (kobo), never floats (see database.md).
+- Every entity listed above is canonical; do not introduce alternative names without updating this definition.
+```
+
+---
+
+## Order States
+
+Canonical order states:
+
+```
+DRAFT → AWAITING_PAYMENT → PAID → PROCESSING → READY_FOR_DELIVERY → SHIPPED → DELIVERED
+```
+
+Exception/terminal states: `CANCELLED`, `FAILED`, `REFUNDED`.
+
+Do not introduce alternative state names without updating this domain definition.
+
+### Transition Matrix
+
+| From                                | To                   | Trigger                                  | Guard                                                   |
+| ----------------------------------- | -------------------- | ---------------------------------------- | ------------------------------------------------------- |
+| `DRAFT`                             | `AWAITING_PAYMENT`   | merchant or AI confirms order            | items, prices, customer verified                        |
+| `AWAITING_PAYMENT`                  | `PAID`               | webhook + server-side verification       | verified tx matches reference, amount, currency, status |
+| `AWAITING_PAYMENT`                  | `FAILED`             | verification fails or recovery times out | payment not verified                                    |
+| `AWAITING_PAYMENT`                  | `CANCELLED`          | merchant or customer                     | no confirmed payment                                    |
+| `PAID`                              | `PROCESSING`         | merchant                                 | payment confirmed                                       |
+| `PAID`                              | `REFUNDED`           | merchant, refund verified with provider  | refund confirmed server-side                            |
+| `PROCESSING`                        | `READY_FOR_DELIVERY` | merchant                                 | fulfilment ready                                        |
+| `READY_FOR_DELIVERY`                | `SHIPPED`            | merchant or delivery provider            | tracking created                                        |
+| `SHIPPED`                           | `DELIVERED`          | merchant or delivery provider            | delivery confirmed                                      |
+| `CANCELLED` / `FAILED` / `REFUNDED` | —                    | none                                     | terminal; no transitions out                            |
+
+```
+- State changes MUST go through the domain layer and pass these guards.
+- Conflicting transitions MUST be rejected as a state conflict, never resolved by last-writer-wins.
+```
+
+---
+
+## Payment Rules
+
+Payment state is authoritative only after verification from the payment provider or an approved reconciliation process.
+
+### Payment States
+
+| State        | Meaning                                  |
+| ------------ | ---------------------------------------- |
+| `PENDING`    | attempt persisted, awaiting verification |
+| `SUCCESSFUL` | verified against provider                |
+| `FAILED`     | verification failed or provider declined |
+| `REFUNDED`   | refund confirmed server-side             |
+
+### Payment → Order Mapping
+
+| Payment state | Order effect                  |
+| ------------- | ----------------------------- |
+| `PENDING`     | stays `AWAITING_PAYMENT`      |
+| `SUCCESSFUL`  | `AWAITING_PAYMENT` → `PAID`   |
+| `FAILED`      | `AWAITING_PAYMENT` → `FAILED` |
+| `REFUNDED`    | `PAID` → `REFUNDED`           |
+
+```
+- A customer statement such as "I paid" is not proof of payment.
+- Payment success MUST NEVER be inferred from a redirect, client-side state, or unverified webhook payload alone.
+```
+
+---
+
+## Inventory Rules
+
+Inventory availability must come from the inventory system.
+
+```
+- Availability MUST be read from authoritative inventory state, never guessed.
+- Inventory operations MUST account for concurrency and prevent overselling where required.
+- Distinguish available vs reserved vs out of stock explicitly.
+- Decrement inventory conditionally (WHERE stock >= quantity) to prevent overselling.
+```
+
+---
+
+## Conversation Rules
+
+A conversation belongs to one business and one customer identity within that business.
+
+### Conversation Control States
+
+```
+AI_CONTROLLED     → automated AI responses are active
+PENDING_HANDOFF   → escalation requested/triggered; AI must not act further
+HUMAN_CONTROLLED  → a human is in control; AI responses are stopped
+```
+
+```
+- When control moves to HUMAN_CONTROLLED, automated AI responses MUST stop until control is explicitly returned.
+- Conversation control and escalation state MUST be explicit and visible.
+- Escalations MUST record a reason and target assignee.
+```
+
+---
+
+## Customer Rules
+
+Customer identities from different channels may be linked only when the system has sufficient evidence and the operation is authorized.
+
+```
+- Never merge customers merely because names appear similar.
+- Customer ownership is scoped to one business; a customer belongs to exactly one business.
+```
+
+---
+
+## Delivery Rules
+
+Delivery status and delivery charges must come from verified merchant configuration or an approved delivery integration.
+
+```
+- Delivery fees MUST be derived from authoritative DeliveryZone configuration, never invented.
+- Delivery state progression uses the order state machine (READY_FOR_DELIVERY → SHIPPED → DELIVERED).
+```
+
+---
+
+## KnowledgeSource Rules
+
+```
+- Knowledge content MUST be traceable to authoritative business records (products, inventory, prices, policies).
+- KnowledgeSource MUST carry a staleness/refresh status and be marked stale when source records change.
+- AI MUST NOT treat KnowledgeSource content as a substitute for verified business data (see ai-behaviour.md).
+```
+
+---
+
+## Domain Integrity
+
+```
+- Do not bypass domain rules from the UI.
+- Server-side/domain validation remains authoritative.
+- State transitions must be explicit and validated.
+- Financial history must remain auditable.
+- Do not hard-delete financial or order history (see database.md).
+```
