@@ -1,8 +1,8 @@
 # Architecture Rules
 
-> **VERSION** : 1.1
+> **VERSION** : 1.3
 > **UPDATED** : 2026-08-13
-> **COMPANION** : `security.md` (secrets/payment safety) · `code-style.md` (style) · Flutterwave integration skill (provider behavior)
+> **COMPANION** : `security.md` (secrets/payment safety) · `code-style.md` (style) · `error-handling.md` (error taxonomy) · `database.md` (money, inventory) · Flutterwave integration skill (provider behavior)
 
 ---
 
@@ -95,7 +95,7 @@ Payment states:
 
 | From                                | To                   | Trigger                                  | Guard                                                   |
 | ----------------------------------- | -------------------- | ---------------------------------------- | ------------------------------------------------------- |
-| `DRAFT`                             | `AWAITING_PAYMENT`   | merchant or AI confirms order            | items, prices, and customer verified                    |
+| `DRAFT`                             | `AWAITING_PAYMENT`   | merchant or AI confirms order            | items, prices, customer verified; inventory reserved    |
 | `AWAITING_PAYMENT`                  | `PAID`               | webhook + server-side verification       | verified tx matches reference, amount, currency, status |
 | `AWAITING_PAYMENT`                  | `FAILED`             | verification fails or recovery times out | payment not verified                                    |
 | `AWAITING_PAYMENT`                  | `CANCELLED`          | merchant or customer                     | no confirmed payment                                    |
@@ -131,6 +131,15 @@ The payment flow must support:
 9. Comparing verified transaction reference, status, amount, and currency to the expected payment.
 10. Updating the payment and order atomically according to valid state transitions.
 
+### Money Handling
+
+```
+- Store amounts as integers in the currency's minor unit (kobo), never floats (see database.md).
+- Verified amounts MUST be compared as minor-unit integers, never display strings or floats.
+- An over-payment or under-payment MUST NOT mark the order paid: leave the attempt in a valid state, record the mismatch, and surface it for reconciliation.
+- Never grant value based on a client-supplied amount or a frontend total.
+```
+
 ### Atomicity
 
 ```
@@ -160,7 +169,7 @@ Webhook endpoints should be thin:
 4. Validate the payload shape.
 5. Record the event using an idempotency key based on the provider event identity.
 6. Acknowledge accepted receipt promptly.
-7. Process business effects asynchronously where the project architecture supports it.
+7. Enqueue a durable work item for the business effects (see Reliable Asynchronous Effects); never perform them inline before acknowledging.
 
 Never perform long-running work before acknowledging a valid webhook if doing so risks the provider timeout.
 
@@ -181,6 +190,20 @@ Idempotency keys MUST be backed by unique constraints, not lookup-only checks.
 
 ---
 
+## Reliable Asynchronous Effects
+
+Webhook effects, notifications, follow-ups, and recovery jobs MUST NOT be lost when the runtime terminates work after an HTTP response.
+
+```
+- Side effects MUST be recorded as durable work items (outbox pattern) in the same transaction as the state change that follows them.
+- A worker MUST process work items at-least-once on a schedule; the runtime MUST NOT rely on post-response execution.
+- Every work-item handler MUST be idempotent and keyed by a unique constraint, so retries and duplicates cannot apply effects twice.
+- Acknowledged webhooks and scheduled recovery runs enqueue work items; they MUST NOT perform long business effects inline.
+- Failed work items MUST be retried with bounded backoff, then surfaced for manual resolution; never silently dropped.
+```
+
+---
+
 ## Pending Payment Recovery
 
 Webhook delivery can fail. The system must not silently leave verified payments stuck.
@@ -193,6 +216,19 @@ Webhook delivery can fail. The system must not silently leave verified payments 
 - If recovery confirms success, apply the atomic AWAITING_PAYMENT → PAID transition.
 - If recovery confirms failure or timeout, transition per the state machine and notify the merchant.
 ```
+
+---
+
+## Refund Reconciliation
+
+A refund is not complete until the provider confirms it. Pending refunds MUST have a recovery path like pending payments.
+
+```
+- The refund attempt MUST be persisted with a unique refund reference before calling the provider.
+- PAID → REFUNDED MUST be applied only after the provider confirms the refund server-side.
+- A refund still pending past a defined window MUST be re-queried with the provider on a server-side schedule; never client-side.
+- Refund recovery MUST be idempotent: a late webhook and a recovery run resolving the same refund MUST NOT both apply effects.
+- On a confirmed refund, apply the atomic PAID → REFUNDED transition and restock per the inventory policy (see Inventory Lifecycle).```
 
 ---
 
@@ -233,6 +269,22 @@ AI tools/actions should:
 
 ---
 
+## Inventory Lifecycle
+
+Inventory is tracked as `available` (sellable) and `reserved` (held by in-flight orders). Committing means moving reserved stock to allocated at fulfilment.
+
+```
+- Reservation MUST happen atomically with order confirmation (DRAFT → AWAITING_PAYMENT), conditionally (available >= quantity), and MUST be idempotent.
+- A failed reservation MUST reject the transition (INSUFFICIENT_STOCK); stock MUST never go negative.
+- Reserved stock is committed/allocated when the order reaches READY_FOR_DELIVERY (the guard on that transition).
+- AWAITING_PAYMENT → CANCELLED and AWAITING_PAYMENT → FAILED MUST release the reservation back to available, atomically with the transition and idempotently.
+- PAID → REFUNDED restores stock to available only after the refund is confirmed server-side. The merchant's configured restock policy applies; when none is configured, the default is to return the quantity to available.
+- Every inventory change MUST record a reason/source and remain auditable (see database.md).
+- See the inventory-management skill and ecommerce-domain.md for the canonical model.
+```
+
+---
+
 ## Fulfilment and Follow-up
 
 ```
@@ -246,17 +298,7 @@ AI tools/actions should:
 
 ## Error Handling
 
-Domain errors use explicit codes, never raw provider or internal messages.
-
-| Code                  | Meaning                                   | HTTP |
-| --------------------- | ----------------------------------------- | ---- |
-| `VALIDATION_ERROR`    | invalid input                             | 400  |
-| `AUTHORIZATION_ERROR` | missing or insufficient permissions       | 403  |
-| `NOT_FOUND`           | unknown resource or reference             | 404  |
-| `CONFLICT`            | state transition not allowed              | 409  |
-| `PROVIDER_ERROR`      | Flutterwave or external provider failure  | 502  |
-| `PAYMENT_FAILED`      | payment not verified or provider declined | 422  |
-| `INTERNAL_ERROR`      | unexpected failure                        | 500  |
+Error codes and their HTTP mapping are owned by `error-handling.md`. Do not introduce codes outside that canonical taxonomy; `error-handling.md` is the single reference for code names, meanings, and status codes.
 
 ```
 - Errors MUST preserve context for logs without leaking secrets.
@@ -271,6 +313,15 @@ Domain errors use explicit codes, never raw provider or internal messages.
 External providers must be isolated behind integration boundaries. Provider-specific details should not leak throughout the domain model unnecessarily.
 
 Integration failures must produce recoverable application states, not silent corruption.
+
+Delivery and fulfilment providers MUST also be isolated behind integration boundaries:
+
+```
+- Delivery state progression (READY_FOR_DELIVERY → SHIPPED → DELIVERED) MUST be driven by domain-validated events, never raw provider payloads.
+- Tracking identifiers MUST be verified and stored on the Delivery record; the SHIPPED guard requires tracking created.
+- Delivery provider failures MUST produce recoverable states with retries, never silent corruption of order state.
+- Delivery fees MUST come from authoritative DeliveryZone configuration, never client- or AI-supplied values.
+```
 
 ---
 
@@ -287,7 +338,8 @@ Important business operations should produce structured audit/event records, esp
 - Pending-payment recovery.
 - Webhook receipt.
 - Webhook rejection.
-- Refunds.
+- Refund reconciliation.
+- Failed work items / outbox processing failures.
 - Human takeover.
 - AI-triggered business actions.
 

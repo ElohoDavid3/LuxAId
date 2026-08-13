@@ -1,6 +1,6 @@
 # API Rules
 
-> **VERSION** : 1.0
+> **VERSION** : 1.1
 > **UPDATED** : 2026-08-13
 > **COMPANION** : `error-handling.md` (error taxonomy) · `code-style.md` (response contracts) · `security.md` (secrets/payment safety) · Flutterwave integration skill (provider behavior)
 
@@ -105,7 +105,7 @@ Webhook payloads are untrusted external input. Webhook endpoints should be thin.
 4. Validate the payload shape.
 5. Record the event using an idempotency key based on the provider event identity, backed by a unique constraint.
 6. Acknowledge accepted receipt promptly (HTTP 200).
-7. Process business effects asynchronously where the architecture supports it.
+7. Enqueue a durable work item for the business effects (outbox pattern, see architecture.md).
 ```
 
 - Never perform long-running work before acknowledging a valid webhook if it risks the provider timeout.
@@ -135,6 +135,7 @@ Use standard status codes consistently. Never return 200 for errors.
 | ------ | ------------------------------------------------------- |
 | 200    | Successful read or update                               |
 | 201    | Successful creation                                     |
+| 202    | Accepted; async work queued (e.g., PAYMENT_PENDING)     |
 | 204    | Successful deletion (no body)                           |
 | 400    | Validation error (invalid input)                        |
 | 401    | Not authenticated                                       |
@@ -145,6 +146,8 @@ Use standard status codes consistently. Never return 200 for errors.
 | 422    | Business-logic failure (e.g., PAYMENT_FAILED)           |
 | 429    | Rate limited                                            |
 | 500    | Internal error (logged, never exposed)                  |
+| 502    | Upstream/external provider failure (INTEGRATION_FAILURE)|
+| 503    | Provider/temporary service unavailable; retry later     |
 
 ---
 

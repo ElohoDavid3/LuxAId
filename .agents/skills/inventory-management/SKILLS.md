@@ -1,8 +1,8 @@
 # Inventory Management Skill
 
-> **VERSION** : 1.0
+> **VERSION** : 1.2
 > **UPDATED** : 2026-08-13
-> **COMPANION** : `ecommerce-domain.md` (entities, inventory rules) · `multi-tenancy.md` (tenant boundary) · `database.md` (persistence, concurrency) · `ai-behaviour.md` (AI grounding, authorization)
+> **COMPANION** : `ecommerce-domain.md` (entities, inventory rules) · `architecture.md` (inventory lifecycle) · `multi-tenancy.md` (tenant boundary) · `database.md` (persistence, concurrency) · `ai-behaviour.md` (AI grounding, authorization)
 
 ---
 
@@ -62,12 +62,14 @@ Before accepting an order, verify all of the following from authoritative domain
 
 ## Reservation Model
 
-Decide and persist the stock model explicitly. Reserve at confirmation, deduct only on order confirmation; never treat a cart or conversation as a deduction.
+Decide and persist the stock model explicitly. Reserve at order confirmation (`DRAFT → AWAITING_PAYMENT`), commit at fulfilment readiness; never treat a cart or conversation as a deduction.
 
 ```
 - `available` = stock sellable now; `reserved` = stock held by in-flight orders; out of stock when available = 0.
-- Reservation MUST happen atomically with order creation or confirmation.
-- Deduction MUST happen only on the confirmed transition (e.g., order PAID or PROCESSING per ecommerce-domain.md), never on a browser action or unverified event.
+- Reservation MUST happen atomically with order confirmation (`DRAFT → AWAITING_PAYMENT`), conditionally (`available >= quantity`), and MUST be idempotent.
+- Commit the reserved quantity only when the order reaches `READY_FOR_DELIVERY` (the transition guard requires inventory allocated), never on a browser action or unverified event.
+- `AWAITING_PAYMENT → CANCELLED` / `FAILED` MUST release the reservation back to `available`, atomically and idempotently.
+- `PAID → REFUNDED` MUST restore stock only after the refund is confirmed server-side, per the merchant's policy; when none is configured, return the quantity to available by default.
 ```
 
 ---
@@ -115,7 +117,7 @@ Define the compensation path explicitly. If an order process fails after invento
 
 ```
 - On order failure or cancellation with no confirmed payment: release the reservation (return quantity to available) atomically with the order state change.
-- On return/refund after deduction: restore stock only after the refund is confirmed server-side, per ecommerce-domain.md.
+- On return/refund after deduction: restore stock only after the refund is confirmed server-side, per ecommerce-domain.md; default to returning the quantity to available.
 - Releases MUST be idempotent so a duplicate release event cannot restore the same stock twice.
 - If a reservation cannot be reconciled (e.g., missing order), surface it for manual resolution instead of guessing.
 ```

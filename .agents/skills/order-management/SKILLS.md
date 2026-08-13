@@ -25,7 +25,7 @@ Every order state change must be an explicit, guarded transition triggered throu
 
 | From                                | To                   | Trigger                                  | Guard                                                   |
 | ----------------------------------- | -------------------- | ---------------------------------------- | ------------------------------------------------------- |
-| `DRAFT`                             | `AWAITING_PAYMENT`   | merchant or AI confirms order            | items, prices, and customer verified                    |
+| `DRAFT`                             | `AWAITING_PAYMENT`   | merchant or AI confirms order            | items, prices, customer verified; inventory reserved    |
 | `AWAITING_PAYMENT`                  | `PAID`               | webhook + server-side verification       | verified tx matches reference, amount, currency, status |
 | `AWAITING_PAYMENT`                  | `FAILED`             | verification fails or recovery times out | payment not verified                                    |
 | `AWAITING_PAYMENT`                  | `CANCELLED`          | merchant or customer                     | no confirmed payment                                    |
@@ -56,10 +56,13 @@ Never trust frontend totals, customer-supplied prices, AI-generated totals, or s
 
 ## Inventory
 
-Coordinate order creation with inventory rules and prevent concurrent requests from overselling stock.
+Coordinate order confirmation with inventory rules and prevent concurrent requests from overselling stock.
 
-- Decrement inventory conditionally (`WHERE stock >= quantity`) so concurrent requests cannot oversell.
-- Use transactions with appropriate isolation for multi-record operations (order creation + inventory decrement must succeed or fail together).
+- Reserve inventory conditionally (`WHERE stock >= quantity`) so concurrent requests cannot oversell.
+- Use transactions with appropriate isolation for multi-record operations (order confirmation + inventory reservation must succeed or fail together).
+- Commit the reserved quantity when the order reaches `READY_FOR_DELIVERY`; do not deduct at order creation.
+- Release reservations back to available on `AWAITING_PAYMENT → CANCELLED` / `FAILED`, atomically and idempotently.
+- Restore stock on `PAID → REFUNDED` only after the refund is confirmed server-side, per the merchant's policy; when none is configured, return the quantity to available by default.
 
 ## Payments
 

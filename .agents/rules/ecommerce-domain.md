@@ -1,8 +1,8 @@
 # E-Commerce Domain Rules
 
-> **VERSION** : 1.0
+> **VERSION** : 1.2
 > **UPDATED** : 2026-08-13
-> **COMPANION** : `architecture.md` (state machine) · `database.md` (persistence, kobo) · `multi-tenancy.md` (tenant boundary) · `ai-behaviour.md` (AI grounding) · `error-handling.md` (domain errors)
+> **COMPANION** : `architecture.md` (state machine, inventory lifecycle) · `database.md` (persistence, kobo) · `multi-tenancy.md` (tenant boundary) · `ai-behaviour.md` (AI grounding) · `error-handling.md` (domain errors)
 
 ---
 
@@ -65,13 +65,13 @@ Do not introduce alternative state names without updating this domain definition
 
 | From                                | To                   | Trigger                                  | Guard                                                   |
 | ----------------------------------- | -------------------- | ---------------------------------------- | ------------------------------------------------------- |
-| `DRAFT`                             | `AWAITING_PAYMENT`   | merchant or AI confirms order            | items, prices, customer verified                        |
+| `DRAFT`                             | `AWAITING_PAYMENT`   | merchant or AI confirms order            | items, prices, customer verified; inventory reserved    |
 | `AWAITING_PAYMENT`                  | `PAID`               | webhook + server-side verification       | verified tx matches reference, amount, currency, status |
 | `AWAITING_PAYMENT`                  | `FAILED`             | verification fails or recovery times out | payment not verified                                    |
 | `AWAITING_PAYMENT`                  | `CANCELLED`          | merchant or customer                     | no confirmed payment                                    |
 | `PAID`                              | `PROCESSING`         | merchant                                 | payment confirmed                                       |
 | `PAID`                              | `REFUNDED`           | merchant, refund verified with provider  | refund confirmed server-side                            |
-| `PROCESSING`                        | `READY_FOR_DELIVERY` | merchant                                 | fulfilment ready                                        |
+| `PROCESSING`                        | `READY_FOR_DELIVERY` | merchant                                 | fulfilment ready, inventory allocated                   |
 | `READY_FOR_DELIVERY`                | `SHIPPED`            | merchant or delivery provider            | tracking created                                        |
 | `SHIPPED`                           | `DELIVERED`          | merchant or delivery provider            | delivery confirmed                                      |
 | `CANCELLED` / `FAILED` / `REFUNDED` | —                    | none                                     | terminal; no transitions out                            |
@@ -121,6 +121,17 @@ Inventory availability must come from the inventory system.
 - Inventory operations MUST account for concurrency and prevent overselling where required.
 - Distinguish available vs reserved vs out of stock explicitly.
 - Decrement inventory conditionally (WHERE stock >= quantity) to prevent overselling.
+```
+
+### Inventory Lifecycle
+
+```
+- Reserve atomically at order confirmation (DRAFT → AWAITING_PAYMENT), conditionally (available >= quantity), and idempotently.
+- Commit the reserved quantity when the order reaches READY_FOR_DELIVERY (the transition guard requires inventory allocated).
+- Release reservations back to available on AWAITING_PAYMENT → CANCELLED / FAILED, atomically and idempotently.
+- Restore stock on PAID → REFUNDED only after the refund is confirmed server-side, per the merchant's policy; when none is configured, return the quantity to available by default.
+- Every inventory change MUST record a reason/source and stay auditable.
+- See architecture.md for the canonical lifecycle; the inventory-management skill for implementation.
 ```
 
 ---

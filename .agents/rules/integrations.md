@@ -1,8 +1,8 @@
 # Integration Rules
 
-> **VERSION** : 1.0
+> **VERSION** : 1.1
 > **UPDATED** : 2026-08-13
-> **COMPANION** : `api.md` (idempotency, webhooks, status codes) · `security.md` (secrets) · `error-handling.md` (INTEGRATION_FAILURE) · `architecture.md` (payment flow) · Flutterwave integration skill (provider behavior)
+> **COMPANION** : `api.md` (idempotency, webhooks, status codes) · `security.md` (secrets) · `error-handling.md` (INTEGRATION_FAILURE) · `architecture.md` (payment flow, reliable async effects) · Flutterwave integration skill (provider behavior)
 
 ---
 
@@ -80,7 +80,7 @@ For every webhook:
 
 ```
 - Never perform long-running work before acknowledging a valid webhook if it risks the provider timeout.
-- Process business effects asynchronously where the architecture supports it.
+- Enqueue a durable work item for business effects (outbox pattern, see architecture.md); never process them inline after acknowledging.
 - A duplicate webhook MUST NOT create another order, confirm payment twice, or duplicate value delivery.
 - Pending transactions MUST have a recovery path if webhook delivery fails.
 ```

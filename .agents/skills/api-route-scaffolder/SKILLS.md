@@ -39,6 +39,7 @@ Do not return `200` for errors. Use the HTTP status that matches the error.
 | ------ | ------------------------------------------------------------------------- |
 | 200    | Successful read or update                                                 |
 | 201    | Successful creation                                                       |
+| 202    | Accepted; async work queued (e.g., PAYMENT_PENDING)                       |
 | 204    | Successful deletion (no body)                                             |
 | 400    | Validation error (client sent bad input)                                  |
 | 401    | Not authenticated                                                         |
@@ -49,18 +50,19 @@ Do not return `200` for errors. Use the HTTP status that matches the error.
 | 422    | Business logic failure (e.g., Flutterwave payment could not be completed) |
 | 429    | Rate limited                                                              |
 | 500    | Internal server error (logged, never exposed to the client)               |
+| 502    | Upstream/external provider failure (INTEGRATION_FAILURE)                  |
+| 503    | Provider/temporary service unavailable; retry later                       |
 
 ## Error-Code Taxonomy
 
-Use the codes defined in `.agents/rules/error-handling.md`, which is the canonical owner of the taxonomy. Add new codes there if the taxonomy genuinely needs them.
+Use the codes defined in `.agents/rules/error-handling.md`, which is the canonical owner of the taxonomy. Add new codes there if the taxonomy genuinely needs them. Do not use codes outside that taxonomy.
 
 | Code                   | HTTP       | When to use                                                       |
 | ---------------------- | ---------- | ----------------------------------------------------------------- |
 | `VALIDATION_ERROR`     | 400        | Zod validation failed on input                                    |
 | `UNAUTHORIZED`         | 401        | No session or invalid session                                     |
 | `FORBIDDEN`            | 403        | Authenticated but not allowed (e.g., another tenant's data)       |
-| `NOT_FOUND`            | 404        | Resource does not exist                                           |
-| `CONFLICT`             | 409        | Duplicate resource (e.g., duplicate transaction reference)        |
+| `RATE_LIMITED`         | 429        | Too many requests                                                 |
 | `UNKNOWN_PRODUCT`      | 404        | Product does not exist                                            |
 | `PRODUCT_UNAVAILABLE`  | 404        | Product exists but cannot be sold                                 |
 | `INSUFFICIENT_STOCK`   | 409 or 422 | Requested quantity exceeds available inventory                    |
@@ -70,7 +72,6 @@ Use the codes defined in `.agents/rules/error-handling.md`, which is the canonic
 | `PAYMENT_FAILED`       | 422        | Provider or reconciliation confirms failure                       |
 | `PAYMENT_UNVERIFIED`   | 422        | No verification result obtainable for the reference               |
 | `PAYMENT_MISMATCH`     | 422        | Verified tx does not match reference, amount, currency, or status |
-| `RATE_LIMITED`         | 429        | Too many requests                                                 |
 | `INTEGRATION_FAILURE`  | 502 or 503 | External provider failed or returned an invalid response          |
 | `INTERNAL_ERROR`       | 500        | Unexpected server error (logged, never exposed)                   |
 

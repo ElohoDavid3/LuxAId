@@ -1,6 +1,6 @@
 # Error Handling Rules
 
-> **VERSION** : 1.0
+> **VERSION** : 1.1
 > **UPDATED** : 2026-08-13
 > **COMPANION** : `api.md` (response shape, status codes) · `code-style.md` (logger) · `ai-behaviour.md` (AI errors) · `database.md` (auditability)
 
@@ -65,6 +65,12 @@ Grouped by layer. Do not create duplicate names for the same semantic error with
 | `UNAUTHORIZED`     | not authenticated                                       |
 | `FORBIDDEN`        | authenticated but not allowed                           |
 
+### Infrastructure
+
+| Code           | Meaning                       |
+| -------------- | ----------------------------- |
+| `RATE_LIMITED` | too many requests (see api.md) |
+
 ### Domain
 
 | Code                   | Meaning                                        |
@@ -108,6 +114,7 @@ Grouped by layer. Do not create duplicate names for the same semantic error with
 | `VALIDATION_ERROR`                                              | 400                     |
 | `UNAUTHORIZED`                                                  | 401                     |
 | `FORBIDDEN`                                                     | 403                     |
+| `RATE_LIMITED`                                                  | 429                     |
 | `UNKNOWN_PRODUCT` / `PRODUCT_UNAVAILABLE`                       | 404                     |
 | `INSUFFICIENT_STOCK` / `INVALID_ORDER` / `DELIVERY_UNAVAILABLE` | 409 or 422 by operation |
 | `PAYMENT_FAILED` / `PAYMENT_MISMATCH` / `PAYMENT_UNVERIFIED`    | 422                     |
