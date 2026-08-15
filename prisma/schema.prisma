@@ -1,0 +1,513 @@
+// LuxAId canonical database schema.
+// Source of truth: .agents/rules/ecommerce-domain.md, .agents/rules/database.md,
+// .agents/rules/multi-tenancy.md and AGENTS.md.
+//
+// Conventions:
+// - Business is the canonical domain entity and the root tenant boundary.
+//   Every tenant-owned model carries `businessId` and an index on it.
+// - Money is stored as integers in the currency minor unit (kobo), never Float.
+// - Product.status uses only DRAFT | ACTIVE | ARCHIVED. OUT_OF_STOCK is an
+//   inventory-derived condition, never a product status.
+// - PaymentAttempt is the canonical payment entity. An Order has a 1:N
+//   relationship with PaymentAttempt; PaymentAttempt.orderId is NOT unique.
+// - Inventory stores only `available` and `reserved` (plus `location`).
+//   "allocated" is a fulfilment lifecycle condition, NOT a third quantity.
+// - DeliveryZone.coverage uses merchant-defined location/area labels (MVP);
+//   no GIS or geographic system.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum OrderStatus {
+  DRAFT
+  AWAITING_PAYMENT
+  PAID
+  PROCESSING
+  READY_FOR_DELIVERY
+  SHIPPED
+  DELIVERED
+  RETURNED
+  CANCELLED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentAttemptStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  REFUNDED
+}
+
+enum ConversationControlState {
+  AI_CONTROLLED
+  PENDING_HANDOFF
+  HUMAN_CONTROLLED
+}
+
+enum EscalationStatus {
+  OPEN
+  ASSIGNED
+  RESOLVED
+  CANCELLED
+}
+
+/// Root tenant entity. "Tenant" refers to the architectural multi-tenancy
+/// isolation concept; Business is the canonical domain entity.
+model Business {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships               BusinessMembership[]
+  settings                  BusinessSettings?
+  products                  Product[]
+  variants                  ProductVariant[]
+  inventories               Inventory[]
+  customers                 Customer[]
+  customerChannelIdentities CustomerChannelIdentity[]
+  conversations             Conversation[]
+  messages                  Message[]
+  knowledgeSources          KnowledgeSource[]
+  escalations               Escalation[]
+  orders                    Order[]
+  orderItems                OrderItem[]
+  paymentAttempts           PaymentAttempt[]
+  deliveries                Delivery[]
+  deliveryZones             DeliveryZone[]
+  automations               Automation[]
+  automationExecutions      AutomationExecution[]
+  notifications             Notification[]
+  auditLogs                 AuditLog[]
+  analyticsEvents           AnalyticsEvent[]
+  inventoryMovements        InventoryMovement[]
+}
+
+/// Platform-owned identity. A User accesses a Business only through a
+/// BusinessMembership.
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships BusinessMembership[]
+  escalations Escalation[] // assignee
+}
+
+model BusinessMembership {
+  id         String   @id @default(cuid())
+  businessId String
+  userId     String
+  role       String
+  status     String   @default("ACTIVE")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([businessId])
+  @@index([userId])
+}
+
+model BusinessSettings {
+  id                 String   @id @default(cuid())
+  businessId         String   @unique
+  policies           Json?
+  deliveryDefaults   Json?
+  notificationConfig Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id          String        @id @default(cuid())
+  businessId  String
+  name        String
+  description String
+  price       Int // kobo
+  status      ProductStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  business   Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  variants   ProductVariant[]
+  orderItems OrderItem[]
+
+  @@index([businessId])
+  @@index([businessId, status])
+}
+
+model ProductVariant {
+  id         String   @id @default(cuid())
+  businessId String
+  productId  String
+  name       String
+  sku        String
+  attributes Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  inventory  Inventory?
+  orderItems OrderItem[]
+
+  @@index([businessId])
+  @@index([productId])
+  @@index([sku])
+}
+
+/// Single authoritative inventory source per variant. Stores exactly two
+/// quantity fields (available, reserved) plus location. "allocated" is a
+/// fulfilment lifecycle condition, NOT a stored quantity.
+model Inventory {
+  id               String   @id @default(cuid())
+  businessId       String
+  productVariantId String   @unique
+  available        Int      @default(0)
+  reserved         Int      @default(0)
+  location         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  business       Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant      @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  movements      InventoryMovement[]
+
+  @@index([businessId])
+  @@index([location])
+}
+
+/// Auditable history of every inventory change (approved domain extension).
+model InventoryMovement {
+  id            String   @id @default(cuid())
+  businessId    String
+  inventoryId   String
+  quantityDelta Int
+  reason        String
+  sourceType    String
+  sourceId      String
+  createdAt     DateTime @default(now())
+
+  business  Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  inventory Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([inventoryId])
+  @@index([sourceType, sourceId])
+}
+
+model Customer {
+  id         String   @id @default(cuid())
+  businessId String
+  name       String
+  email      String?
+  phone      String?
+  location   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business          Business                  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  channelIdentities CustomerChannelIdentity[]
+  conversations     Conversation[]
+  orders            Order[]
+  notifications     Notification[]
+
+  @@index([businessId])
+  @@index([businessId, email])
+  @@index([businessId, phone])
+}
+
+model CustomerChannelIdentity {
+  id         String   @id @default(cuid())
+  businessId String
+  customerId String
+  channel    String
+  channelId  String
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([channel, channelId])
+  @@index([businessId])
+  @@index([customerId])
+}
+
+model Conversation {
+  id           String                   @id @default(cuid())
+  businessId   String
+  customerId   String
+  status       String                   @default("OPEN")
+  controlState ConversationControlState @default(AI_CONTROLLED)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  business    Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messages    Message[]
+  escalations Escalation[]
+
+  @@index([businessId])
+  @@index([customerId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  businessId     String
+  conversationId String
+  authorType     String
+  body           String
+  createdAt      DateTime @default(now())
+
+  business     Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([conversationId])
+}
+
+model KnowledgeSource {
+  id             String    @id @default(cuid())
+  businessId     String
+  content        String
+  status         String    @default("ACTIVE")
+  stale          Boolean   @default(false)
+  lastVerifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+model Escalation {
+  id             String           @id @default(cuid())
+  businessId     String
+  conversationId String
+  reason         String
+  status         EscalationStatus @default(OPEN)
+  assigneeId     String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  resolvedAt     DateTime?
+
+  business     Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  assignee     User?        @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([conversationId])
+  @@index([status])
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  businessId  String
+  customerId  String
+  status      OrderStatus @default(DRAFT)
+  totalAmount Int // kobo
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  business             Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer             Customer              @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  items                OrderItem[]
+  paymentAttempts      PaymentAttempt[]
+  delivery             Delivery?
+  notifications        Notification[]
+  automationExecutions AutomationExecution[]
+
+  @@index([businessId])
+  @@index([customerId])
+  @@index([businessId, status])
+}
+
+model OrderItem {
+  id               String   @id @default(cuid())
+  businessId       String
+  orderId          String
+  productId        String
+  productVariantId String?
+  quantity         Int
+  unitPrice        Int // kobo, captured at order time
+  createdAt        DateTime @default(now())
+
+  business       Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
+
+  @@index([businessId])
+  @@index([orderId])
+  @@index([productId])
+}
+
+/// Canonical payment entity. An Order has a 1:N relationship with
+/// PaymentAttempt (orderId is NOT unique) because a customer may retry a
+/// failed or declined payment. Only a successfully verified attempt may
+/// transition an order to PAID.
+model PaymentAttempt {
+  id                   String               @id @default(cuid())
+  businessId           String
+  orderId              String
+  transactionReference String               @unique
+  gatewayReference     String?              @unique
+  status               PaymentAttemptStatus @default(PENDING)
+  amount               Int // kobo
+  currency             String               @default("NGN")
+  providerVerification Json?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([businessId])
+  @@index([orderId])
+  @@index([businessId, status])
+}
+
+model Delivery {
+  id                    String   @id @default(cuid())
+  businessId            String
+  orderId               String   @unique
+  deliveryZoneId        String?
+  status                String   @default("PENDING")
+  fee                   Int? // kobo
+  carrier               String?
+  tracking              String?
+  estimatedDeliveryTime String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  deliveryZone DeliveryZone? @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([deliveryZoneId])
+}
+
+/// Coverage is a merchant-defined list of location/area labels (MVP).
+/// No GIS, radius, or coordinate resolution.
+model DeliveryZone {
+  id         String   @id @default(cuid())
+  businessId String
+  name       String
+  fee        Int // kobo
+  coverage   Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  deliveries Delivery[]
+
+  @@index([businessId])
+}
+
+model Automation {
+  id         String   @id @default(cuid())
+  businessId String
+  name       String
+  trigger    Json
+  action     Json
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business   Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  executions AutomationExecution[]
+
+  @@index([businessId])
+}
+
+model AutomationExecution {
+  id           String    @id @default(cuid())
+  businessId   String
+  automationId String
+  orderId      String?
+  status       String
+  result       Json?
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  order      Order?     @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([automationId])
+  @@index([orderId])
+}
+
+model Notification {
+  id         String    @id @default(cuid())
+  businessId String
+  customerId String?
+  orderId    String?
+  channel    String
+  status     String    @default("PENDING")
+  subject    String?
+  body       String
+  sentAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  order    Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+  @@index([customerId])
+  @@index([orderId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  businessId String
+  eventType  String
+  actorType  String?
+  actorId    String?
+  payload    Json?
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([businessId, eventType])
+  @@index([createdAt])
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  businessId String
+  eventType  String
+  properties Json?
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([businessId, eventType])
+}
