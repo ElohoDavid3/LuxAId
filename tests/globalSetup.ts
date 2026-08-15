@@ -6,7 +6,7 @@ const projectRoot = path.join(__dirname, '..');
 export default function globalSetup(): void {
   const testUrl =
     process.env.TEST_DATABASE_URL ??
-    'postgresql://luxaid:luxaid_dev_local@localhost:5432/luxaid_test?schema=public';
+    'postgresql://orderaid:orderaid_dev_local@localhost:5432/orderaid_test?schema=public';
   const cli = path.join(projectRoot, 'node_modules', 'prisma', 'build', 'index.js');
 
   execFileSync('node', [cli, 'migrate', 'deploy'], {

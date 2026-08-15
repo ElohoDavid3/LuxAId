@@ -29,9 +29,9 @@ export async function sendPasswordResetEmail(
   await t.sendMail({
     from: env.SMTP_FROM,
     to,
-    subject: 'Reset your LuxAId password',
+    subject: 'Reset your OrderAId password',
     text: [
-      'We received a request to reset the password for your LuxAId account.',
+      'We received a request to reset the password for your OrderAId account.',
       '',
       `Open this link to choose a new password: ${resetUrl}`,
       '',

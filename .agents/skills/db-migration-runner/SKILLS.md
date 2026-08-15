@@ -1,6 +1,6 @@
 # DB Migration Runner
 
-Apply and manage Prisma schema changes for LuxAId. All database schema changes must go through this workflow and Prisma. Never alter the database schema by hand.
+Apply and manage Prisma schema changes for OrderAId. All database schema changes must go through this workflow and Prisma. Never alter the database schema by hand.
 
 Read `.agents/rules/database.md` (schema conventions, money handling, auditability) before touching the schema. Read `.agents/rules/architecture.md` (state machines) for any change touching orders, payments, or other stateful models.
 

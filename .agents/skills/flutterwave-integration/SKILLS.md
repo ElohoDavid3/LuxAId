@@ -1,6 +1,6 @@
 # Flutterwave Integration
 
-Implement payment features for LuxAId using Flutterwave. Read `.agents/rules/security.md`, `.agents/rules/architecture.md`, and the reference implementation in `webhook-handler.ts` before working on any payment code.
+Implement payment features for OrderAId using Flutterwave. Read `.agents/rules/security.md`, `.agents/rules/architecture.md`, and the reference implementation in `webhook-handler.ts` before working on any payment code.
 
 ## Core Rules
 

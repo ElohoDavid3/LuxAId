@@ -2,7 +2,7 @@
 
 # AI E-Commerce Customer Support & Sales Automation Platform
 
-**Working Product Name:** LuxAId
+**Working Product Name:** OrderAId
 **Product Type:** B2B SaaS / AI commerce automation
 **Primary Market:** Nigeria
 **Initial Customer Segment:** Small and medium-sized social-commerce businesses

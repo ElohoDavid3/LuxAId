@@ -1,6 +1,6 @@
 # WhatsApp Commerce Skill
 
-Implement WhatsApp conversation and commerce processing for LuxAId. Read `.agents/rules/integrations.md` (webhook, retry, timeout rules), `.agents/rules/security.md` (webhook auth, prompt injection, secrets), `.agents/rules/api.md` (idempotency, webhooks), `.agents/rules/multi-tenancy.md` (tenant boundary), `.agents/rules/ai-behaviour.md` (untrusted input, handoff), and `.agents/rules/error-handling.md` (error taxonomy) before building WhatsApp code. Coordinate with the sibling skills `api-route-scaffolder`, `ai-commerce-agent`, and `human-handoff`. Verify provider behavior against the official WhatsApp Cloud API docs before implementation.
+Implement WhatsApp conversation and commerce processing for OrderAId. Read `.agents/rules/integrations.md` (webhook, retry, timeout rules), `.agents/rules/security.md` (webhook auth, prompt injection, secrets), `.agents/rules/api.md` (idempotency, webhooks), `.agents/rules/multi-tenancy.md` (tenant boundary), `.agents/rules/ai-behaviour.md` (untrusted input, handoff), and `.agents/rules/error-handling.md` (error taxonomy) before building WhatsApp code. Coordinate with the sibling skills `api-route-scaffolder`, `ai-commerce-agent`, and `human-handoff`. Verify provider behavior against the official WhatsApp Cloud API docs before implementation.
 
 ## Message Lifecycle
 

@@ -1,6 +1,6 @@
 # Component Builder
 
-Build UI components for LuxAId that follow the design system and the design tokens. Before building any component, read `.agents/rules/design-system.md` and `.agents/rules/code-style.md`.
+Build UI components for OrderAId that follow the design system and the design tokens. Before building any component, read `.agents/rules/design-system.md` and `.agents/rules/code-style.md`.
 
 ## Process
 

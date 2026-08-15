@@ -167,7 +167,7 @@ _(Note: AI agents must strictly adhere to this stack and not introduce new frame
 ## Folder Structure
 
 ```
-luxaid/
+orderaid/
 ├── src/
 │   ├── app/
 │   │   ├── api/                   API routes including webhooks (e.g., /api/webhooks/flutterwave)

@@ -1,6 +1,6 @@
 # API Route Scaffolder
 
-Create Next.js App Router route handlers for LuxAId. Read `.agents/rules/api.md`, `.agents/rules/error-handling.md`, `.agents/rules/architecture.md`, and `.agents/rules/security.md` before building a route.
+Create Next.js App Router route handlers for OrderAId. Read `.agents/rules/api.md`, `.agents/rules/error-handling.md`, `.agents/rules/architecture.md`, and `.agents/rules/security.md` before building a route.
 
 ## Location and Naming
 

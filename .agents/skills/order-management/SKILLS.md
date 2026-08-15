@@ -1,6 +1,6 @@
 # Order Management Skill
 
-Implement order creation and state management for LuxAId. Read `.agents/rules/architecture.md` (transition matrix, state machine), `.agents/rules/database.md` (persistence, concurrency, money handling), `.agents/rules/api.md` (idempotency) and `.agents/rules/error-handling.md` (error taxonomy), `.agents/rules/multi-tenancy.md` (tenant boundary), and the sibling skills `inventory-management` and `ai-commerce-agent` before building order code.
+Implement order creation and state management for OrderAId. Read `.agents/rules/architecture.md` (transition matrix, state machine), `.agents/rules/database.md` (persistence, concurrency, money handling), `.agents/rules/api.md` (idempotency) and `.agents/rules/error-handling.md` (error taxonomy), `.agents/rules/multi-tenancy.md` (tenant boundary), and the sibling skills `inventory-management` and `ai-commerce-agent` before building order code.
 
 ## Canonical States
 

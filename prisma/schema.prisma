@@ -1,4 +1,4 @@
-// LuxAId canonical database schema.
+// OrderAId canonical database schema.
 // Source of truth: .agents/rules/ecommerce-domain.md, .agents/rules/database.md,
 // .agents/rules/multi-tenancy.md and AGENTS.md.
 //

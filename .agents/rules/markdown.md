@@ -9,7 +9,7 @@
 
 ## Purpose
 
-Applies to every Markdown artifact in LuxAId:
+Applies to every Markdown artifact in OrderAId:
 
 | Artifact             | Location                     |
 | -------------------- | ---------------------------- |
