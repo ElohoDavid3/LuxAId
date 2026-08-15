@@ -51,6 +51,17 @@ enum PaymentAttemptStatus {
   REFUNDED
 }
 
+enum MembershipRole {
+  OWNER
+  STAFF
+  SUPPORT_AGENT
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum ConversationControlState {
   AI_CONTROLLED
   PENDING_HANDOFF
@@ -106,18 +117,22 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  memberships BusinessMembership[]
-  escalations Escalation[] // assignee
+  memberships         BusinessMembership[]
+  escalations         Escalation[] // assignee
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
 }
 
+/// A User's access to a Business. Authorization is checked against an ACTIVE
+/// BusinessMembership; the role is the least-privilege scope set for the MVP.
 model BusinessMembership {
-  id         String   @id @default(cuid())
+  id         String           @id @default(cuid())
   businessId String
   userId     String
-  role       String
-  status     String   @default("ACTIVE")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  role       MembershipRole
+  status     MembershipStatus @default(ACTIVE)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -125,6 +140,39 @@ model BusinessMembership {
   @@unique([businessId, userId])
   @@index([businessId])
   @@index([userId])
+}
+
+/// Server-side authentication session (Auth.js database strategy).
+/// Field names match the @auth/prisma-adapter contract: `sessionToken` unique,
+/// `userId`, `expires`. Sessions are deleted server-side on logout and when
+/// expired, so a client cookie alone is never proof of an active session.
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expires])
+}
+
+/// Single-use password reset token. Only the hash of the raw token is stored;
+/// the raw token is generated with a CSPRNG and delivered by email only.
+/// A new reset request supersedes all prior pending tokens for the user.
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model BusinessSettings {
