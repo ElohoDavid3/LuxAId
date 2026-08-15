@@ -34,10 +34,7 @@ export async function requireActiveMembership(
       actorId: userId,
       payload: { reason: 'no_active_membership' },
     });
-    throw new AppError(
-      'FORBIDDEN',
-      'You do not have access to this business.',
-    );
+    throw new AppError('FORBIDDEN', 'You do not have access to this business.');
   }
 
   return {

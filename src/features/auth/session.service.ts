@@ -25,7 +25,9 @@ export async function validateSession(sessionToken: string | null | undefined) {
   });
   if (!session) return null;
   if (session.expires.getTime() < Date.now()) {
-    await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
+    await prisma.session
+      .delete({ where: { id: session.id } })
+      .catch(() => undefined);
     return null;
   }
   return session;
@@ -38,7 +40,12 @@ export async function invalidateSession(
   await prisma.session
     .delete({ where: { sessionToken } })
     .catch((error: unknown) => {
-      if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2025') {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'P2025'
+      ) {
         return;
       }
       throw error;

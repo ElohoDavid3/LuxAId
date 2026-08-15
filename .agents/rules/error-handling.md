@@ -67,8 +67,8 @@ Grouped by layer. Do not create duplicate names for the same semantic error with
 
 ### Infrastructure
 
-| Code           | Meaning                       |
-| -------------- | ----------------------------- |
+| Code           | Meaning                        |
+| -------------- | ------------------------------ |
 | `RATE_LIMITED` | too many requests (see api.md) |
 
 ### Domain

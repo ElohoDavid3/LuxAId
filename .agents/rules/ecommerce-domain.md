@@ -16,31 +16,31 @@ Define the canonical commerce vocabulary and business state rules. This file is 
 
 Every business-owned entity below MUST belong to a Business and be accessed only within an authorized business context (see `multi-tenancy.md`).
 
-| Entity                    | Owner                  | Key fields                                       | Primary relations                            |
-| ------------------------- | ---------------------- | ------------------------------------------------ | -------------------------------------------- |
-| `Business`                | — (root tenant)        | name, settings                                   | User (members), products, customers, orders  |
-| `User`                    | Business               | name, email, passwordHash                        | BusinessMembership                           |
-| `BusinessMembership`      | Business               | role/permissions, status                         | User, Business                               |
-| `BusinessSettings`        | Business               | policies, delivery defaults, notification config | Business                                     |
-| `Product`                 | Business               | name, description, price (kobo), status          | Business, ProductVariant, OrderItem          |
-| `ProductVariant`          | Product                | name, sku, attributes                            | Product, Inventory                           |
-| `Inventory`               | Product/ProductVariant | available, reserved, location (authoritative)    | ProductVariant                               |
-| `Customer`                | Business               | name, email?, phone?                             | CustomerChannelIdentity, Conversation, Order |
-| `CustomerChannelIdentity` | Business               | channel, channel ID                              | Customer                                     |
-| `Conversation`            | Business               | control state, escalation state                  | Customer, Message, Escalation                |
-| `Message`                 | Conversation           | author, body, timestamp                          | Conversation                                 |
-| `KnowledgeSource`         | Business               | content, status, staleness                       | Business                                     |
-| `Escalation`              | Business               | reason, status, assignee                         | Conversation, User                           |
-| `Order`                   | Business               | status, total (kobo)                             | Customer, OrderItem, PaymentAttempt, Delivery |
-| `OrderItem`               | Order                  | product/variant, quantity, unit price (kobo)     | Order, Product, ProductVariant               |
-| `PaymentAttempt`          | Business               | reference, amount, currency, status              | Order (1:N)                                  |
-| `Delivery`                | Business               | status, fee (kobo), carrier/tracking             | Order, DeliveryZone                          |
-| `DeliveryZone`            | Business               | name, fee (kobo), coverage (location/area labels) | Business, Delivery                           |
-| `Automation`              | Business               | trigger, action, enabled                         | Business, AutomationExecution                |
-| `AutomationExecution`     | Automation             | status, result, timestamp                        | Automation                                   |
-| `Notification`            | Business               | channel, status, sentAt                          | Business, Order, Customer                    |
-| `AuditLog`                | Business               | event type, actor, timestamp, payload            | Business                                     |
-| `AnalyticsEvent`          | Business               | event type, properties, timestamp                | Business                                     |
+| Entity                    | Owner                  | Key fields                                        | Primary relations                             |
+| ------------------------- | ---------------------- | ------------------------------------------------- | --------------------------------------------- |
+| `Business`                | — (root tenant)        | name, settings                                    | User (members), products, customers, orders   |
+| `User`                    | Business               | name, email, passwordHash                         | BusinessMembership                            |
+| `BusinessMembership`      | Business               | role/permissions, status                          | User, Business                                |
+| `BusinessSettings`        | Business               | policies, delivery defaults, notification config  | Business                                      |
+| `Product`                 | Business               | name, description, price (kobo), status           | Business, ProductVariant, OrderItem           |
+| `ProductVariant`          | Product                | name, sku, attributes                             | Product, Inventory                            |
+| `Inventory`               | Product/ProductVariant | available, reserved, location (authoritative)     | ProductVariant                                |
+| `Customer`                | Business               | name, email?, phone?                              | CustomerChannelIdentity, Conversation, Order  |
+| `CustomerChannelIdentity` | Business               | channel, channel ID                               | Customer                                      |
+| `Conversation`            | Business               | control state, escalation state                   | Customer, Message, Escalation                 |
+| `Message`                 | Conversation           | author, body, timestamp                           | Conversation                                  |
+| `KnowledgeSource`         | Business               | content, status, staleness                        | Business                                      |
+| `Escalation`              | Business               | reason, status, assignee                          | Conversation, User                            |
+| `Order`                   | Business               | status, total (kobo)                              | Customer, OrderItem, PaymentAttempt, Delivery |
+| `OrderItem`               | Order                  | product/variant, quantity, unit price (kobo)      | Order, Product, ProductVariant                |
+| `PaymentAttempt`          | Business               | reference, amount, currency, status               | Order (1:N)                                   |
+| `Delivery`                | Business               | status, fee (kobo), carrier/tracking              | Order, DeliveryZone                           |
+| `DeliveryZone`            | Business               | name, fee (kobo), coverage (location/area labels) | Business, Delivery                            |
+| `Automation`              | Business               | trigger, action, enabled                          | Business, AutomationExecution                 |
+| `AutomationExecution`     | Automation             | status, result, timestamp                         | Automation                                    |
+| `Notification`            | Business               | channel, status, sentAt                           | Business, Order, Customer                     |
+| `AuditLog`                | Business               | event type, actor, timestamp, payload             | Business                                      |
+| `AnalyticsEvent`          | Business               | event type, properties, timestamp                 | Business                                      |
 
 ```
 - Price, totals, and delivery fees MUST be stored as integers (kobo), never floats (see database.md).
@@ -123,12 +123,12 @@ The PRD uses the term `Payment`; the canonical domain entity is `PaymentAttempt`
 
 ### PaymentAttempt → Order Mapping
 
-| Attempt state | Order effect                                             |
-| ------------- | -------------------------------------------------------- |
-| `PENDING`     | order stays `AWAITING_PAYMENT`                           |
-| `SUCCESSFUL`  | `AWAITING_PAYMENT` → `PAID` (only a successfully verified attempt may do this) |
+| Attempt state | Order effect                                                                                                                                                                              |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PENDING`     | order stays `AWAITING_PAYMENT`                                                                                                                                                            |
+| `SUCCESSFUL`  | `AWAITING_PAYMENT` → `PAID` (only a successfully verified attempt may do this)                                                                                                            |
 | `FAILED`      | order stays `AWAITING_PAYMENT`; the customer may retry. The order transitions `AWAITING_PAYMENT` → `FAILED` only via the guarded transition when verification fails or recovery times out |
-| `REFUNDED`    | `PAID` → `REFUNDED`                                      |
+| `REFUNDED`    | `PAID` → `REFUNDED`                                                                                                                                                                       |
 
 ```
 - A customer statement such as "I paid" is not proof of payment.
@@ -155,6 +155,14 @@ Inventory availability must come from the inventory system.
 ### Inventory Movement History
 
 Every inventory change MUST produce a durable `InventoryMovement` record (quantity delta, reason/source, reference to the triggering business record, timestamp), written atomically with the change and never rewritten or hard-deleted. `InventoryMovement` is an approved, rule-supported domain extension to the canonical entity list.
+
+Inventory operations are idempotent, enforced by the unique constraint `@@unique([inventoryId, reason, sourceId])` (not lookup-only checks), so a retried operation cannot apply its effect twice. The idempotency key is composed as follows:
+
+- Order-scoped operations (`reservation`, `commitment`, `release`, `return/refund`) use `sourceId = orderId`, keyed per variant; one order can perform each operation on a given variant exactly once.
+- `import` (initial stock set) uses `sourceId = variantId`: it is a single canonical set per variant; later stock changes go through `manual_adjustment`.
+- `manual_adjustment` uses an optional client `idempotencyKey` as `sourceId`, or a generated UUID when none is supplied.
+
+Allowed movement `reason` values: `reservation`, `commitment`, `release`, `return/refund`, `manual_adjustment`, `import`. Allowed `sourceType` values: `ORDER`, `VARIANT`, `MANUAL_ADJUSTMENT`. New reasons or source types require a rule change.
 
 ### Inventory Lifecycle
 

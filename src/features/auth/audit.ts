@@ -29,7 +29,7 @@ export async function logAudit(entry: AuditEntry): Promise<void> {
 export async function safeAudit(entry: AuditEntry): Promise<void> {
   try {
     await logAudit(entry);
-  } catch (error) {
+  } catch {
     logger.warn('audit.failed', {
       eventType: entry.eventType,
       businessId: entry.businessId,

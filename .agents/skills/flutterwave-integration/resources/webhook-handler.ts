@@ -27,7 +27,7 @@
  *    the raw payload, credentials, or authorization headers.
  */
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export interface FlutterwaveWebhookRequest {
   rawBody: string;
@@ -64,8 +64,11 @@ export interface Logger {
 /**
  * Computes the HMAC-SHA256 base64 signature documented by Flutterwave.
  */
-export function computeFlutterwaveSignature(rawBody: string, secretHash: string): string {
-  return createHmac("sha256", secretHash).update(rawBody).digest("base64");
+export function computeFlutterwaveSignature(
+  rawBody: string,
+  secretHash: string,
+): string {
+  return createHmac('sha256', secretHash).update(rawBody).digest('base64');
 }
 
 /**
@@ -79,8 +82,8 @@ export function isValidFlutterwaveSignature(
   if (!receivedSignature || !secretHash) return false;
 
   const expected = computeFlutterwaveSignature(rawBody, secretHash);
-  const received = Buffer.from(receivedSignature, "utf8");
-  const expectedBuffer = Buffer.from(expected, "utf8");
+  const received = Buffer.from(receivedSignature, 'utf8');
+  const expectedBuffer = Buffer.from(expected, 'utf8');
 
   if (received.length !== expectedBuffer.length) return false;
 
@@ -101,7 +104,7 @@ export function isLegacyVerifHashValid(
 }
 
 function getHeader(
-  headers: FlutterwaveWebhookRequest["headers"],
+  headers: FlutterwaveWebhookRequest['headers'],
   name: string,
 ): string | undefined {
   const value = headers[name] ?? headers[name.toLowerCase()];
@@ -113,17 +116,19 @@ function getHeader(
 /**
  * Validate the minimum event structure before handing it to domain logic.
  */
-export function parseFlutterwaveEvent(rawBody: string): FlutterwaveWebhookEvent {
+export function parseFlutterwaveEvent(
+  rawBody: string,
+): FlutterwaveWebhookEvent {
   const payload: unknown = JSON.parse(rawBody);
 
-  if (!payload || typeof payload !== "object") {
-    throw new Error("Invalid Flutterwave webhook payload");
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid Flutterwave webhook payload');
   }
 
   const event = payload as FlutterwaveWebhookEvent;
 
-  if (!event.type || !event.data || typeof event.data !== "object") {
-    throw new Error("Incomplete Flutterwave webhook payload");
+  if (!event.type || !event.data || typeof event.data !== 'object') {
+    throw new Error('Incomplete Flutterwave webhook payload');
   }
 
   return event;
@@ -134,10 +139,12 @@ export function parseFlutterwaveEvent(rawBody: string): FlutterwaveWebhookEvent 
  * a provider that returns a string or a float cannot silently pass or fail a
  * strict comparison. Returns null when the value is not a finite integer.
  */
-export function normalizeAmount(value: number | string | undefined): number | null {
+export function normalizeAmount(
+  value: number | string | undefined,
+): number | null {
   if (value === undefined || value === null) return null;
 
-  const normalized = typeof value === "number" ? value : Number(value);
+  const normalized = typeof value === 'number' ? value : Number(value);
 
   if (!Number.isFinite(normalized) || !Number.isInteger(normalized)) {
     return null;
@@ -180,7 +187,7 @@ export interface PaymentAttempt {
 export class PaymentStateConflictError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "PaymentStateConflictError";
+    this.name = 'PaymentStateConflictError';
   }
 }
 
@@ -205,7 +212,7 @@ export interface WebhookEventStore {
     eventType: string;
     transactionId: string;
     transactionReference: string;
-  }): Promise<"recorded" | "duplicate">;
+  }): Promise<'recorded' | 'duplicate'>;
 
   findByTransactionReference(reference: string): Promise<PaymentAttempt | null>;
 
@@ -235,14 +242,17 @@ export interface FlutterwaveWebhookWorker {
   }): Promise<void>;
 }
 
-function isAuthentic(request: FlutterwaveWebhookRequest, secretHash: string | undefined): boolean {
-  const signature = getHeader(request.headers, "flutterwave-signature");
+function isAuthentic(
+  request: FlutterwaveWebhookRequest,
+  secretHash: string | undefined,
+): boolean {
+  const signature = getHeader(request.headers, 'flutterwave-signature');
 
   if (signature !== undefined) {
     return isValidFlutterwaveSignature(request.rawBody, signature, secretHash);
   }
 
-  const legacyHash = getHeader(request.headers, "verif-hash");
+  const legacyHash = getHeader(request.headers, 'verif-hash');
   return isLegacyVerifHashValid(legacyHash, secretHash);
 }
 
@@ -268,8 +278,10 @@ export async function handleFlutterwaveWebhook(
   },
 ): Promise<FlutterwaveWebhookResponse> {
   if (!isAuthentic(request, dependencies.secretHash)) {
-    dependencies.logger.info("webhook.rejected", { reason: "invalid_signature" });
-    return { status: 401, body: "Invalid webhook signature" };
+    dependencies.logger.info('webhook.rejected', {
+      reason: 'invalid_signature',
+    });
+    return { status: 401, body: 'Invalid webhook signature' };
   }
 
   let event: FlutterwaveWebhookEvent;
@@ -277,14 +289,14 @@ export async function handleFlutterwaveWebhook(
   try {
     event = parseFlutterwaveEvent(request.rawBody);
   } catch {
-    dependencies.logger.info("webhook.rejected", { reason: "invalid_payload" });
-    return { status: 400, body: "Invalid webhook payload" };
+    dependencies.logger.info('webhook.rejected', { reason: 'invalid_payload' });
+    return { status: 400, body: 'Invalid webhook payload' };
   }
 
-  dependencies.logger.info("webhook.received", { eventId: event.id });
+  dependencies.logger.info('webhook.received', { eventId: event.id });
 
   // Ignore non-payment events here unless the product explicitly adds them.
-  if (event.type !== "charge.completed") {
+  if (event.type !== 'charge.completed') {
     return { status: 200 };
   }
 
@@ -293,7 +305,7 @@ export async function handleFlutterwaveWebhook(
   const transactionReference = event.data?.tx_ref ?? event.data?.reference;
 
   if (!eventId || !transactionId || !transactionReference) {
-    return { status: 400, body: "Incomplete payment webhook" };
+    return { status: 400, body: 'Incomplete payment webhook' };
   }
 
   // Idempotency barrier: the unique constraint on eventId is what stops
@@ -306,16 +318,17 @@ export async function handleFlutterwaveWebhook(
     transactionReference,
   });
 
-  if (receipt === "duplicate") {
-    dependencies.logger.info("webhook.duplicate", { eventId });
+  if (receipt === 'duplicate') {
+    dependencies.logger.info('webhook.duplicate', { eventId });
     return { status: 200 };
   }
 
   // Do not create a payment/order from an unknown reference.
-  const paymentAttempt = await dependencies.store.findByTransactionReference(transactionReference);
+  const paymentAttempt =
+    await dependencies.store.findByTransactionReference(transactionReference);
 
   if (!paymentAttempt) {
-    dependencies.logger.warn("webhook.unknown_reference", {
+    dependencies.logger.warn('webhook.unknown_reference', {
       eventId,
       transactionReference,
     });
@@ -333,11 +346,11 @@ export async function handleFlutterwaveWebhook(
       transactionReference,
     });
   } catch {
-    dependencies.logger.error("webhook.enqueue_failed", { eventId });
-    return { status: 500, body: "Webhook not accepted" };
+    dependencies.logger.error('webhook.enqueue_failed', { eventId });
+    return { status: 500, body: 'Webhook not accepted' };
   }
 
-  dependencies.logger.info("webhook.accepted", { eventId });
+  dependencies.logger.info('webhook.accepted', { eventId });
   return { status: 200 };
 }
 
@@ -359,17 +372,17 @@ export async function processFlutterwaveWebhook(
     store: WebhookEventStore;
     logger: Logger;
   },
-): Promise<"applied" | "ignored" | "state-conflict"> {
+): Promise<'applied' | 'ignored' | 'state-conflict'> {
   const paymentAttempt = await dependencies.store.findByTransactionReference(
     input.transactionReference,
   );
 
   if (!paymentAttempt) {
-    dependencies.logger.warn("webhook.process.unknown_reference", {
+    dependencies.logger.warn('webhook.process.unknown_reference', {
       eventId: input.eventId,
       transactionReference: input.transactionReference,
     });
-    return "ignored";
+    return 'ignored';
   }
 
   // The webhook payload is not authoritative enough to grant value.
@@ -379,25 +392,31 @@ export async function processFlutterwaveWebhook(
   const expectedAmount = normalizeAmount(paymentAttempt.expectedAmount);
 
   const mismatches: string[] = [];
-  if (verified.status !== "successful") mismatches.push("status");
-  if (verifiedAmount !== expectedAmount) mismatches.push("amount");
-  if (String(verified.currency).toUpperCase() !== paymentAttempt.expectedCurrency.toUpperCase()) {
-    mismatches.push("currency");
+  if (verified.status !== 'successful') mismatches.push('status');
+  if (verifiedAmount !== expectedAmount) mismatches.push('amount');
+  if (
+    String(verified.currency).toUpperCase() !==
+    paymentAttempt.expectedCurrency.toUpperCase()
+  ) {
+    mismatches.push('currency');
   }
-  if ((verified.tx_ref ?? verified.reference) !== paymentAttempt.transactionReference) {
-    mismatches.push("reference");
+  if (
+    (verified.tx_ref ?? verified.reference) !==
+    paymentAttempt.transactionReference
+  ) {
+    mismatches.push('reference');
   }
 
   if (mismatches.length > 0) {
     // Leave the payment attempt in its current state. Never mark the order
     // paid. The mismatch is expected for genuinely failed transactions and
     // must remain recoverable via the pending-payment reconciliation job.
-    dependencies.logger.warn("webhook.process.mismatch", {
+    dependencies.logger.warn('webhook.process.mismatch', {
       eventId: input.eventId,
       transactionReference: input.transactionReference,
       mismatches,
     });
-    return "ignored";
+    return 'ignored';
   }
 
   try {
@@ -418,25 +437,25 @@ export async function processFlutterwaveWebhook(
     });
   } catch (error) {
     if (error instanceof PaymentStateConflictError) {
-      dependencies.logger.warn("webhook.process.state_conflict", {
+      dependencies.logger.warn('webhook.process.state_conflict', {
         eventId: input.eventId,
         orderId: paymentAttempt.orderId,
       });
-      return "state-conflict";
+      return 'state-conflict';
     }
 
     // Transient failure: rethrow so the worker can retry with backoff. The
     // receipt row is still pending, so retries remain idempotent.
-    dependencies.logger.error("webhook.process.failed", {
+    dependencies.logger.error('webhook.process.failed', {
       eventId: input.eventId,
       orderId: paymentAttempt.orderId,
     });
     throw error;
   }
 
-  dependencies.logger.info("webhook.process.applied", {
+  dependencies.logger.info('webhook.process.applied', {
     eventId: input.eventId,
     orderId: paymentAttempt.orderId,
   });
-  return "applied";
+  return 'applied';
 }

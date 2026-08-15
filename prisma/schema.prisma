@@ -220,6 +220,7 @@ model ProductVariant {
   inventory  Inventory?
   orderItems OrderItem[]
 
+  @@unique([businessId, sku])
   @@index([businessId])
   @@index([productId])
   @@index([sku])
@@ -247,6 +248,9 @@ model Inventory {
 }
 
 /// Auditable history of every inventory change (approved domain extension).
+/// Idempotent inventory operations (reserve/release/commit/restore/set/adjust)
+/// are backed by the unique (inventoryId, reason, sourceId) constraint so a
+/// retried operation cannot apply its effect twice.
 model InventoryMovement {
   id            String   @id @default(cuid())
   businessId    String
@@ -260,6 +264,7 @@ model InventoryMovement {
   business  Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   inventory Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
+  @@unique([inventoryId, reason, sourceId])
   @@index([businessId])
   @@index([inventoryId])
   @@index([sourceType, sourceId])

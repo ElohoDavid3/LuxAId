@@ -26,15 +26,15 @@ A typical customer journey may look like:
 
 As order volume increases, merchants can lose sales because they:
 
-* Respond too slowly.
-* Miss customer messages.
-* Give inconsistent information.
-* Forget to follow up.
-* Lose orders inside conversations.
-* Manually confirm payments.
-* Manually answer repetitive questions.
-* Fail to update customers about orders.
-* Do not have a reliable view of customer activity.
+- Respond too slowly.
+- Miss customer messages.
+- Give inconsistent information.
+- Forget to follow up.
+- Lose orders inside conversations.
+- Manually confirm payments.
+- Manually answer repetitive questions.
+- Fail to update customers about orders.
+- Do not have a reliable view of customer activity.
 
 The product will turn these conversations into a structured commerce workflow:
 
@@ -72,14 +72,14 @@ Many social-commerce merchants operate through messaging platforms.
 
 Their workflow may depend on:
 
-* WhatsApp chats
-* Instagram DMs
-* Spreadsheets
-* Notes
-* Manual payment confirmation
-* Manual delivery calculations
-* Manual customer follow-up
-* Manually maintained product lists
+- WhatsApp chats
+- Instagram DMs
+- Spreadsheets
+- Notes
+- Manual payment confirmation
+- Manual delivery calculations
+- Manual customer follow-up
+- Manually maintained product lists
 
 This creates operational problems.
 
@@ -87,14 +87,14 @@ This creates operational problems.
 
 Customers repeatedly ask:
 
-* How much?
-* Is it available?
-* What sizes do you have?
-* What colours are available?
-* Where do you deliver?
-* How much is delivery?
-* How long does delivery take?
-* How do I pay?
+- How much?
+- Is it available?
+- What sizes do you have?
+- What colours are available?
+- Where do you deliver?
+- How much is delivery?
+- How long does delivery take?
+- How do I pay?
 
 These questions consume merchant time.
 
@@ -110,14 +110,14 @@ Important sales opportunities can disappear inside busy WhatsApp or Instagram in
 
 The merchant may manually copy:
 
-* Customer name
-* Phone number
-* Product
-* Variant
-* Quantity
-* Location
-* Delivery fee
-* Total
+- Customer name
+- Phone number
+- Product
+- Variant
+- Quantity
+- Location
+- Delivery fee
+- Total
 
 into another system.
 
@@ -133,12 +133,12 @@ Customers who show purchase intent may never be contacted again.
 
 The merchant may not know:
 
-* How many enquiries they receive
-* How many become orders
-* Which products are generating interest
-* How many orders are abandoned
-* How many conversations require human intervention
-* Which customers are returning
+- How many enquiries they receive
+- How many become orders
+- Which products are generating interest
+- How many orders are abandoned
+- How many conversations require human intervention
+- Which customers are returning
 
 ---
 
@@ -164,16 +164,16 @@ That creates an opportunity to make the **conversation itself a commerce interfa
 
 The initial ideal customer is a Nigerian small or medium-sized e-commerce merchant who:
 
-* Sells physical products.
-* Uses WhatsApp heavily.
-* Uses Instagram for product discovery.
-* Receives repeated customer enquiries.
-* Has a catalogue of products.
-* Has enough order volume for manual support to become painful.
-* Wants more orders without hiring more customer-support staff.
-* Already understands digital payments.
-* Is comfortable using a smartphone.
-* Wants a simple system rather than enterprise software.
+- Sells physical products.
+- Uses WhatsApp heavily.
+- Uses Instagram for product discovery.
+- Receives repeated customer enquiries.
+- Has a catalogue of products.
+- Has enough order volume for manual support to become painful.
+- Wants more orders without hiring more customer-support staff.
+- Already understands digital payments.
+- Is comfortable using a smartphone.
+- Wants a simple system rather than enterprise software.
 
 ---
 
@@ -193,15 +193,15 @@ Priority:
 
 These categories are attractive because customers commonly ask questions about:
 
-* Product availability
-* Price
-* Size
-* Colour
-* Style
-* Variants
-* Recommendations
-* Delivery
-* Similar products
+- Product availability
+- Price
+- Size
+- Colour
+- Style
+- Variants
+- Recommendations
+- Delivery
+- Similar products
 
 The product should not initially attempt to serve every possible business category.
 
@@ -213,44 +213,44 @@ The product should not initially attempt to serve every possible business catego
 
 Needs:
 
-* Sales visibility
-* Order management
-* Customer management
-* AI automation
-* Analytics
-* Business configuration
+- Sales visibility
+- Order management
+- Customer management
+- AI automation
+- Analytics
+- Business configuration
 
 ## Customer Support Agent
 
 Needs:
 
-* Conversation inbox
-* Customer context
-* Order context
-* AI handoff
-* Ability to take control
+- Conversation inbox
+- Customer context
+- Order context
+- AI handoff
+- Ability to take control
 
 ## Operations / Fulfilment Staff
 
 Needs:
 
-* Order information
-* Payment status
-* Delivery status
-* Customer information
+- Order information
+- Payment status
+- Delivery status
+- Customer information
 
 ## End Customer
 
 Needs:
 
-* Fast answers
-* Accurate product information
-* Product discovery
-* Easy ordering
-* Payment
-* Order confirmation
-* Delivery information
-* Human assistance when necessary
+- Fast answers
+- Accurate product information
+- Product discovery
+- Easy ordering
+- Payment
+- Order confirmation
+- Delivery information
+- Human assistance when necessary
 
 ---
 
@@ -350,14 +350,14 @@ The AI answers customer questions using verified merchant information.
 
 It should handle:
 
-* Product questions
-* Price questions
-* Availability
-* Variants
-* Delivery
-* Policies
-* Payment information
-* Order status
+- Product questions
+- Price questions
+- Availability
+- Variants
+- Delivery
+- Policies
+- Payment information
+- Order status
 
 ### Critical requirement
 
@@ -383,12 +383,12 @@ The platform models all communication channels behind a common interface so that
 
 Each channel integration must support:
 
-* Inbound message receipt with provider authenticity verification
-* Outbound message sending through the approved provider wrapper
-* Server-side mapping of channel identity (e.g., WhatsApp phone number) to a customer profile
-* Media messages (images, audio, documents) with validated type/size, safe storage, and tenant isolation
-* Idempotent message persistence keyed on the provider message ID
-* Consent-aware outbound messaging with opt-out support
+- Inbound message receipt with provider authenticity verification
+- Outbound message sending through the approved provider wrapper
+- Server-side mapping of channel identity (e.g., WhatsApp phone number) to a customer profile
+- Media messages (images, audio, documents) with validated type/size, safe storage, and tenant isolation
+- Idempotent message persistence keyed on the provider message ID
+- Consent-aware outbound messaging with opt-out support
 
 ### Message handling
 
@@ -396,10 +396,10 @@ A conversation is composed of messages.
 
 Each message must support:
 
-* Text and media content
-* Channel metadata (provider message ID, timestamps, channel)
-* A tenant boundary — never visible outside the owning business
-* Audit records for receipt and sending
+- Text and media content
+- Channel metadata (provider message ID, timestamps, channel)
+- A tenant boundary — never visible outside the owning business
+- Audit records for receipt and sending
 
 Provider webhooks must be authenticated, validated, and acknowledged promptly. Duplicate deliveries must never create duplicate messages or effects.
 
@@ -411,24 +411,24 @@ Merchants can create and manage products.
 
 Each product may include:
 
-* Name
-* Description
-* Category
-* Brand
-* Base price
-* Images
-* Tags
-* Status
-* Variants
-* Metadata
+- Name
+- Description
+- Category
+- Brand
+- Base price
+- Images
+- Tags
+- Status
+- Variants
+- Metadata
 
 Products may have variants such as:
 
-* Size
-* Colour
-* Material
-* Style
-* Other merchant-defined attributes
+- Size
+- Colour
+- Material
+- Style
+- Other merchant-defined attributes
 
 ---
 
@@ -438,11 +438,11 @@ The system should maintain verified inventory information.
 
 Core capabilities:
 
-* Available quantity
-* Reserved quantity
-* Low-stock threshold
-* Stock status
-* Product/variant relationship
+- Available quantity
+- Reserved quantity
+- Low-stock threshold
+- Stock status
+- Product/variant relationship
 
 The AI must use inventory data when answering availability questions.
 
@@ -490,13 +490,13 @@ The AI should not fabricate recommendations.
 
 The AI can recommend products based on:
 
-* Customer requirements
-* Price range
-* Product category
-* Availability
-* Variant
-* Merchant-defined attributes
-* Previous verified customer preferences where appropriate
+- Customer requirements
+- Price range
+- Product category
+- Availability
+- Variant
+- Merchant-defined attributes
+- Previous verified customer preferences where appropriate
 
 Recommendations should be explainable in simple language.
 
@@ -595,15 +595,15 @@ The recovery workflow (see §23) resolves it only through server-side payment ve
 
 The payment layer must support:
 
-* Payment initiation
-* Payment status
-* Successful payment
-* Failed payment
-* Pending payment
-* Refunds
-* External transaction IDs
-* Payment verification
-* Duplicate-event protection
+- Payment initiation
+- Payment status
+- Successful payment
+- Failed payment
+- Pending payment
+- Refunds
+- External transaction IDs
+- Payment verification
+- Duplicate-event protection
 
 ### Critical rule
 
@@ -617,14 +617,14 @@ unless payment has actually been verified.
 
 The following are hard requirements, not optional implementation details:
 
-* Webhook delivery must be authenticated, and the raw webhook body must be preserved for signature verification.
-* Webhook processing must be idempotent. Duplicate events must never double-apply effects.
-* A webhook payload alone is never sufficient to mark an order paid.
-* The provider must be re-queried server-side, and the transaction reference, status, amount, and currency must be matched against the expected payment attempt before any order state change.
-* Payment verification and the order state transition must be applied atomically.
-* Pending transactions must have a recovery path if webhook delivery fails.
-* Value is never granted from a browser redirect, client-side state, or a customer screenshot.
-* No payment provider may be replaced or added without an approved requirement change.
+- Webhook delivery must be authenticated, and the raw webhook body must be preserved for signature verification.
+- Webhook processing must be idempotent. Duplicate events must never double-apply effects.
+- A webhook payload alone is never sufficient to mark an order paid.
+- The provider must be re-queried server-side, and the transaction reference, status, amount, and currency must be matched against the expected payment attempt before any order state change.
+- Payment verification and the order state transition must be applied atomically.
+- Pending transactions must have a recovery path if webhook delivery fails.
+- Value is never granted from a browser redirect, client-side state, or a customer screenshot.
+- No payment provider may be replaced or added without an approved requirement change.
 
 ---
 
@@ -632,11 +632,11 @@ The following are hard requirements, not optional implementation details:
 
 Merchants can define:
 
-* Delivery zones
-* Delivery fees
-* Estimated delivery times
-* Delivery partners
-* Delivery status
+- Delivery zones
+- Delivery fees
+- Estimated delivery times
+- Delivery partners
+- Delivery status
 
 The AI should use the merchant's verified delivery configuration.
 
@@ -652,15 +652,15 @@ The system should automatically recommend or initiate escalation when appropriat
 
 Examples:
 
-* Refund disputes
-* Payment disputes
-* Complaints
-* Missing orders
-* Wrong orders
-* Sensitive issues
-* Unknown information
-* Conflicting business data
-* AI uncertainty
+- Refund disputes
+- Payment disputes
+- Complaints
+- Missing orders
+- Wrong orders
+- Sensitive issues
+- Unknown information
+- Conflicting business data
+- AI uncertainty
 
 Once a human takes control:
 
@@ -676,15 +676,15 @@ The merchant needs a central view of customer conversations.
 
 Each conversation should show:
 
-* Customer
-* Channel
-* Messages
-* Order information
-* Customer history
-* AI status
-* Human assignment
-* Escalation reason
-* Conversation status
+- Customer
+- Channel
+- Messages
+- Order information
+- Customer history
+- AI status
+- Human assignment
+- Escalation reason
+- Conversation status
 
 Primary states:
 
@@ -704,16 +704,16 @@ CLOSED
 
 A customer profile should show:
 
-* Name
-* Phone
-* Email where available
-* Location
-* Order history
-* Previous conversations
-* Tags
-* Preferences
-* Consent status
-* Customer status
+- Name
+- Phone
+- Email where available
+- Location
+- Order history
+- Previous conversations
+- Tags
+- Preferences
+- Consent status
+- Customer status
 
 The merchant should be able to understand the customer without searching through old conversations.
 
@@ -723,11 +723,11 @@ The merchant should be able to understand the customer without searching through
 
 The system should identify customers who:
 
-* Started an order
-* Added products
-* Reached checkout
-* Failed to complete payment
-* Stopped responding
+- Started an order
+- Added products
+- Reached checkout
+- Failed to complete payment
+- Stopped responding
 
 The merchant can configure appropriate follow-up automation.
 
@@ -816,18 +816,18 @@ The most important question should be:
 
 Core metrics:
 
-* Conversations
-* AI-resolved conversations
-* Human escalations
-* Orders created
-* Orders completed
-* Payment success rate
-* Abandoned orders
-* Recovered orders
-* Recovered revenue
-* Average order value
-* Product enquiries
-* Repeat customers
+- Conversations
+- AI-resolved conversations
+- Human escalations
+- Orders created
+- Orders completed
+- Payment success rate
+- Abandoned orders
+- Recovered orders
+- Recovered revenue
+- Average order value
+- Product enquiries
+- Repeat customers
 
 Analytics must be based on real recorded events.
 
@@ -839,13 +839,13 @@ The AI should have access to verified business knowledge.
 
 Sources may include:
 
-* Products
-* Inventory
-* Delivery settings
-* Business policies
-* FAQs
-* Payment information
-* Merchant-provided knowledge
+- Products
+- Inventory
+- Delivery settings
+- Business policies
+- FAQs
+- Payment information
+- Merchant-provided knowledge
 
 The AI should prioritize current verified information.
 
@@ -863,19 +863,19 @@ The following rules are fundamental.
 
 The AI must never invent:
 
-* Prices
-* Stock
-* Product specifications
-* Delivery fees
-* Delivery times
-* Payment status
-* Order status
-* Discounts
-* Refund status
-* Business policies
-* Customer information
-* Revenue
-* Analytics
+- Prices
+- Stock
+- Product specifications
+- Delivery fees
+- Delivery times
+- Payment status
+- Order status
+- Discounts
+- Refund status
+- Business policies
+- Customer information
+- Revenue
+- Analytics
 
 The system should prioritize:
 
@@ -911,16 +911,16 @@ The product should be capable of serving multiple businesses.
 
 Each business must have isolated:
 
-* Products
-* Inventory
-* Customers
-* Conversations
-* Orders
-* Payments
-* Analytics
-* AI knowledge
-* Automations
-* Staff
+- Products
+- Inventory
+- Customers
+- Conversations
+- Orders
+- Payments
+- Analytics
+- AI knowledge
+- Automations
+- Staff
 
 A merchant must never be able to access another merchant's data.
 
@@ -972,12 +972,12 @@ The application handles customer and business information.
 
 It must protect:
 
-* Personal information
-* Authentication credentials
-* Payment secrets
-* API credentials
-* Business information
-* Customer conversation history
+- Personal information
+- Authentication credentials
+- Payment secrets
+- API credentials
+- Business information
+- Customer conversation history
 
 Authorization must be enforced at the application level.
 
@@ -989,13 +989,13 @@ The platform must comply with the Nigeria Data Protection Act 2023 and its imple
 
 Requirements:
 
-* Obtain and record customer consent before storing personal data or sending automated messages.
-* Respect customer opt-outs across all automated communication channels.
-* Provide a clear path for customers and merchants to request access to, correction of, or deletion of their personal data.
-* Enforce a defined data-retention policy and purge personal data past its retention period.
-* Treat conversation history and contact details as sensitive customer data.
-* Never log raw message bodies, media content, or unnecessary personal data.
-* Never expose customer data across tenant boundaries.
+- Obtain and record customer consent before storing personal data or sending automated messages.
+- Respect customer opt-outs across all automated communication channels.
+- Provide a clear path for customers and merchants to request access to, correction of, or deletion of their personal data.
+- Enforce a defined data-retention policy and purge personal data past its retention period.
+- Treat conversation history and contact details as sensitive customer data.
+- Never log raw message bodies, media content, or unnecessary personal data.
+- Never expose customer data across tenant boundaries.
 
 ---
 
@@ -1017,12 +1017,12 @@ This supports the strategic decision to build around **conversation-led commerce
 
 WhatsApp is particularly important because it can function simultaneously as:
 
-* Customer-support channel
-* Sales channel
-* Product discovery channel
-* Order-taking channel
-* Customer relationship channel
-* Notification channel
+- Customer-support channel
+- Sales channel
+- Product discovery channel
+- Order-taking channel
+- Customer relationship channel
+- Notification channel
 
 This creates an opportunity to make the messaging conversation itself part of the commerce infrastructure.
 
@@ -1036,27 +1036,27 @@ This dependency must be treated as a strategic risk.
 
 The product should be designed around realities including:
 
-* Mobile-first business operations
-* Social-media-led discovery
-* WhatsApp-heavy customer communication
-* Naira transactions
-* Local delivery complexity
-* Trust concerns
-* Small business resource constraints
-* Need for simple interfaces
-* Manual operations at early business stages
-* Multi-language customer base (English, Nigerian Pidgin, Yoruba, Hausa, Igbo, and others)
-* Variable data connectivity and bandwidth
-* Amount formatting expectations (Naira, with kobo)
+- Mobile-first business operations
+- Social-media-led discovery
+- WhatsApp-heavy customer communication
+- Naira transactions
+- Local delivery complexity
+- Trust concerns
+- Small business resource constraints
+- Need for simple interfaces
+- Manual operations at early business stages
+- Multi-language customer base (English, Nigerian Pidgin, Yoruba, Hausa, Igbo, and others)
+- Variable data connectivity and bandwidth
+- Amount formatting expectations (Naira, with kobo)
 
 The product should not assume that the Nigerian merchant workflow is identical to a US or European Shopify merchant.
 
 ### Localization
 
-* The merchant UI should default to simple, plain English with a path to localized languages.
-* The AI should handle the languages customers actually use in conversations, without inventing facts in any language.
-* All monetary values are shown in Naira, formatted for Nigerian users, while stored precisely in kobo.
-* Interfaces should be low-bandwidth-friendly and usable on mid-range smartphones.
+- The merchant UI should default to simple, plain English with a path to localized languages.
+- The AI should handle the languages customers actually use in conversations, without inventing facts in any language.
+- All monetary values are shown in Naira, formatted for Nigerian users, while stored precisely in kobo.
+- Interfaces should be low-bandwidth-friendly and usable on mid-range smartphones.
 
 ---
 
@@ -1066,22 +1066,22 @@ WhatsApp is the MVP's primary channel, so its platform requirements directly sha
 
 ### Access and approval
 
-* WhatsApp Business Cloud API access requires a Meta Business portfolio, an approved Business Verification, and a WhatsApp Business Account.
-* Business verification can take time and may require documentation. This must be planned into merchant onboarding.
-* Access can be revoked or restricted by Meta at any time. Treat continued access as an operational risk with monitoring.
+- WhatsApp Business Cloud API access requires a Meta Business portfolio, an approved Business Verification, and a WhatsApp Business Account.
+- Business verification can take time and may require documentation. This must be planned into merchant onboarding.
+- Access can be revoked or restricted by Meta at any time. Treat continued access as an operational risk with monitoring.
 
 ### Pricing model
 
-* Meta prices messaging per conversation (24-hour windows), with different rates for service and marketing templates, and by country.
-* AI-assisted conversations consume these windows and carry per-conversation costs.
-* The cost per conversation must be modeled against expected order value before the "AI conversation allowance" pricing hypothesis is used. A conversation that repeatedly ends in escalation still costs the same as one that produces an order.
-* Template messages (outbound follow-ups, abandoned-order recovery, delivery updates) are billed as business-initiated conversations and are subject to Meta template approval and content policy.
+- Meta prices messaging per conversation (24-hour windows), with different rates for service and marketing templates, and by country.
+- AI-assisted conversations consume these windows and carry per-conversation costs.
+- The cost per conversation must be modeled against expected order value before the "AI conversation allowance" pricing hypothesis is used. A conversation that repeatedly ends in escalation still costs the same as one that produces an order.
+- Template messages (outbound follow-ups, abandoned-order recovery, delivery updates) are billed as business-initiated conversations and are subject to Meta template approval and content policy.
 
 ### Product implications
 
-* The MVP must track which conversation windows and template categories are in use so per-order unit economics stay visible.
-* Outbound automation volume should default to conservative settings that merchants can raise only after seeing costs.
-* A fallback channel (e.g., website chat or Instagram DM) must be supported behind the channel abstraction so the business is not stranded if WhatsApp access is interrupted.
+- The MVP must track which conversation windows and template categories are in use so per-order unit economics stay visible.
+- Outbound automation volume should default to conservative settings that merchants can raise only after seeing costs.
+- A fallback channel (e.g., website chat or Instagram DM) must be supported behind the channel abstraction so the business is not stranded if WhatsApp access is interrupted.
 
 ---
 
@@ -1095,35 +1095,35 @@ The most important distinction is:
 
 Examples:
 
-* Myshoplet
-* Paystack Commerce
-* Bumpa
+- Myshoplet
+- Paystack Commerce
+- Bumpa
 
 ### Category B — WhatsApp / conversational commerce platforms
 
 Examples:
 
-* Wati
-* respond.io
-* Interakt
-* Trengo
-* SleekFlow
+- Wati
+- respond.io
+- Interakt
+- Trengo
+- SleekFlow
 
 ### Category C — General e-commerce platforms
 
 Examples:
 
-* Shopify
-* WooCommerce
-* Selar
+- Shopify
+- WooCommerce
+- Selar
 
 ### Category D — Other listed platforms
 
-* **Trengo** — omnichannel shared inbox and messaging automation; broad and horizontal, not built around Nigerian small-merchant commerce.
-* **SleekFlow** — conversational CRM and social commerce (WhatsApp, Instagram, catalogues); strong in Asian markets, not Nigeria-first.
-* **Shopify** — leading standalone store platform with a large ecosystem; store-first rather than conversation-first, and costly/complex for the target segment.
-* **WooCommerce** — storefront plugin for WordPress; requires technical setup and a separate store, not conversation-led.
-* **Selar** — Nigerian platform strong for digital and creator sales; weaker for conversation-led physical-product ordering.
+- **Trengo** — omnichannel shared inbox and messaging automation; broad and horizontal, not built around Nigerian small-merchant commerce.
+- **SleekFlow** — conversational CRM and social commerce (WhatsApp, Instagram, catalogues); strong in Asian markets, not Nigeria-first.
+- **Shopify** — leading standalone store platform with a large ecosystem; store-first rather than conversation-first, and costly/complex for the target segment.
+- **WooCommerce** — storefront plugin for WordPress; requires technical setup and a separate store, not conversation-led.
+- **Selar** — Nigerian platform strong for digital and creator sales; weaker for conversation-led physical-product ordering.
 
 These are monitored rather than treated as primary comparables for the MVP.
 
@@ -1143,19 +1143,19 @@ Myshoplet is the closest visible competitor to this product concept.
 
 Its current offering includes:
 
-* WhatsApp selling
-* Online storefront
-* AI Sales Agent
-* Product catalogue
-* Order management
-* Inventory
-* Payments
-* Delivery
-* Analytics
-* Marketing
-* POS
-* CRM
-* Team management
+- WhatsApp selling
+- Online storefront
+- AI Sales Agent
+- Product catalogue
+- Order management
+- Inventory
+- Payments
+- Delivery
+- Analytics
+- Marketing
+- POS
+- CRM
+- Team management
 
 Its AI Sales Agent can answer product questions and create orders through WhatsApp.
 
@@ -1171,15 +1171,15 @@ That positioning is already occupied.
 
 The product should instead compete on:
 
-* Superior AI accuracy
-* Better customer-support workflows
-* Better human handoff
-* Better conversation intelligence
-* Better automation reliability
-* Better merchant control
-* Better UX
-* Better integrations
-* Better support for businesses that already have their own store rather than forcing them into another commerce platform
+- Superior AI accuracy
+- Better customer-support workflows
+- Better human handoff
+- Better conversation intelligence
+- Better automation reliability
+- Better merchant control
+- Better UX
+- Better integrations
+- Better support for businesses that already have their own store rather than forcing them into another commerce platform
 
 ---
 
@@ -1189,13 +1189,13 @@ Paystack Commerce provides Nigerian/African sellers with storefronts, product va
 
 ### Strengths
 
-* Strong Nigerian payment ecosystem
-* Commerce infrastructure
-* Storefront
-* Orders
-* Inventory
-* WhatsApp connection
-* Strong trust/brand recognition
+- Strong Nigerian payment ecosystem
+- Commerce infrastructure
+- Storefront
+- Orders
+- Inventory
+- WhatsApp connection
+- Strong trust/brand recognition
 
 ### Weakness
 
@@ -1217,26 +1217,26 @@ Wati is a major conversational commerce competitor.
 
 Its e-commerce offering includes:
 
-* WhatsApp catalogues
-* Automated support
-* Order confirmation
-* Billing updates
-* Product promotions
-* Abandoned-cart recovery
-* WhatsApp automation
-* Integrations with e-commerce platforms
+- WhatsApp catalogues
+- Automated support
+- Order confirmation
+- Billing updates
+- Product promotions
+- Abandoned-cart recovery
+- WhatsApp automation
+- Integrations with e-commerce platforms
 
 Wati also provides shared inbox, CRM, AI agents, segmentation, campaigns, and multi-channel capabilities.
 
 ### Strengths
 
-* Mature WhatsApp ecosystem
-* Strong automation
-* Broad integrations
-* Shared inbox
-* CRM
-* AI
-* Marketing automation
+- Mature WhatsApp ecosystem
+- Strong automation
+- Broad integrations
+- Shared inbox
+- CRM
+- AI
+- Marketing automation
 
 ### Weakness
 
@@ -1246,12 +1246,12 @@ It is a broad horizontal platform rather than a product designed specifically ar
 
 Win through:
 
-* Nigeria-first UX
-* Simpler setup
-* Local business workflows
-* Local commerce assumptions
-* Stronger integration with Nigerian payments/delivery
-* Vertical-specific experiences
+- Nigeria-first UX
+- Simpler setup
+- Local business workflows
+- Local commerce assumptions
+- Stronger integration with Nigerian payments/delivery
+- Vertical-specific experiences
 
 ---
 
@@ -1261,25 +1261,25 @@ Respond.io is positioned around customer conversations for mid-market B2C compan
 
 Its capabilities include:
 
-* Omnichannel inbox
-* WhatsApp
-* Instagram
-* Facebook Messenger
-* TikTok
-* CRM integration
-* AI agents
-* Lead qualification
-* Product recommendations
-* Routing
-* Sales automation
+- Omnichannel inbox
+- WhatsApp
+- Instagram
+- Facebook Messenger
+- TikTok
+- CRM integration
+- AI agents
+- Lead qualification
+- Product recommendations
+- Routing
+- Sales automation
 
 ### Strengths
 
-* Strong omnichannel architecture
-* Advanced AI agents
-* Mature conversation management
-* CRM integrations
-* Enterprise capabilities
+- Strong omnichannel architecture
+- Advanced AI agents
+- Mature conversation management
+- CRM integrations
+- Enterprise capabilities
 
 ### Weakness
 
@@ -1299,12 +1299,12 @@ Haptik focuses on AI-powered customer care and WhatsApp-based customer service.
 
 Its use cases include:
 
-* Order tracking
-* FAQs
-* Payment issues
-* Post-sales support
-* Customer self-service
-* Human escalation
+- Order tracking
+- FAQs
+- Payment issues
+- Post-sales support
+- Customer self-service
+- Human escalation
 
 ### Strength
 
@@ -1370,12 +1370,12 @@ Built around Nigerian commerce workflows.
 
 The AI understands:
 
-* Products
-* Inventory
-* Orders
-* Payments
-* Delivery
-* Customers
+- Products
+- Inventory
+- Orders
+- Payments
+- Delivery
+- Customers
 
 It is not merely a general-purpose conversational bot.
 
@@ -1431,12 +1431,12 @@ Messaging + payment + delivery + order infrastructure.
 
 Understanding which conversations are:
 
-* Information requests
-* High-intent buyers
-* Existing customers
-* Complaints
-* Abandoned orders
-* Upsell opportunities
+- Information requests
+- High-intent buyers
+- Existing customers
+- Complaints
+- Abandoned orders
+- Upsell opportunities
 
 ### Operational reliability
 
@@ -1452,49 +1452,49 @@ The MVP should be deliberately narrow.
 
 ### Merchant
 
-* Authentication
-* Business profile
-* Product management
-* Product variants
-* Inventory
-* Delivery settings
-* Business policies
+- Authentication
+- Business profile
+- Product management
+- Product variants
+- Inventory
+- Delivery settings
+- Business policies
 
 ### Customer
 
-* AI conversation
-* Product discovery
-* Product recommendations
-* Product questions
-* Order creation
-* Payment flow
-* Order confirmation
-* Human handoff
+- AI conversation
+- Product discovery
+- Product recommendations
+- Product questions
+- Order creation
+- Payment flow
+- Order confirmation
+- Human handoff
 
 ### Merchant Operations
 
-* Conversation inbox
-* Customer profiles
-* Orders
-* Payment status
-* Delivery status
-* Escalations
+- Conversation inbox
+- Customer profiles
+- Orders
+- Payment status
+- Delivery status
+- Escalations
 
 ### Automation
 
-* Order confirmation
-* Payment confirmation
-* Basic abandoned-order recovery
-* Basic delivery notification
+- Order confirmation
+- Payment confirmation
+- Basic abandoned-order recovery
+- Basic delivery notification
 
 ### Analytics
 
-* Conversations
-* Orders
-* Conversion
-* AI resolution
-* Escalations
-* Recovered orders
+- Conversations
+- Orders
+- Conversion
+- AI resolution
+- Escalations
+- Recovered orders
 
 ## Build Priority
 
@@ -1502,34 +1502,34 @@ The MVP is sequenced into three tiers.
 
 ### P0 — Foundation (must ship first)
 
-* Merchant authentication and business setup
-* Product catalogue and variants
-* Inventory
-* Delivery configuration
-* Verified business knowledge
-* WhatsApp Business API channel connection
-* AI customer support grounded in verified data
-* Conversational order creation
-* Payment flow (Flutterwave)
-* Server-side payment verification and the order `PAID` transition
-* Human handoff
-* Conversation inbox
+- Merchant authentication and business setup
+- Product catalogue and variants
+- Inventory
+- Delivery configuration
+- Verified business knowledge
+- WhatsApp Business API channel connection
+- AI customer support grounded in verified data
+- Conversational order creation
+- Payment flow (Flutterwave)
+- Server-side payment verification and the order `PAID` transition
+- Human handoff
+- Conversation inbox
 
 ### P1 — Operations (ship as soon as P0 is stable)
 
-* Customer profiles
-* Order management and fulfilment states
-* Escalations
-* Order confirmation and payment confirmation notifications
-* Basic abandoned-order recovery
-* Analytics (conversations, orders, conversion, escalations)
+- Customer profiles
+- Order management and fulfilment states
+- Escalations
+- Order confirmation and payment confirmation notifications
+- Basic abandoned-order recovery
+- Analytics (conversations, orders, conversion, escalations)
 
 ### P2 — Follow-on (only after real merchant usage)
 
-* Basic delivery notifications
-* Advanced abandoned-order recovery controls
-* Recovered-order analytics
-* Business dashboard refinements
+- Basic delivery notifications
+- Advanced abandoned-order recovery controls
+- Recovered-order analytics
+- Business dashboard refinements
 
 No P1/P2 feature may block a P0 feature from shipping.
 
@@ -1539,18 +1539,18 @@ No P1/P2 feature may block a P0 feature from shipping.
 
 Do not initially build:
 
-* Full accounting
-* Payroll
-* HR
-* Complex ERP
-* Marketplace functionality
-* Advanced POS
-* Sophisticated loyalty system
-* Complex advertising platform
-* Full email marketing suite
-* Advanced financial reporting
-* Multi-country expansion
-* Extensive AI content-generation tools
+- Full accounting
+- Payroll
+- HR
+- Complex ERP
+- Marketplace functionality
+- Advanced POS
+- Sophisticated loyalty system
+- Complex advertising platform
+- Full email marketing suite
+- Advanced financial reporting
+- Multi-country expansion
+- Extensive AI content-generation tools
 
 These may become future opportunities but should not distract from the core product.
 
@@ -1748,42 +1748,42 @@ The initial product should measure:
 
 ## Activation
 
-* Percentage of merchants who complete onboarding
-* Time to first product added
-* Time to first connected channel
-* Time to first AI conversation
+- Percentage of merchants who complete onboarding
+- Time to first product added
+- Time to first connected channel
+- Time to first AI conversation
 
 ## Engagement
 
-* Conversations per merchant
-* AI interactions
-* Human escalations
-* Active merchants
+- Conversations per merchant
+- AI interactions
+- Human escalations
+- Active merchants
 
 ## Commerce
 
-* Orders created
-* Orders completed
-* Conversation-to-order conversion
-* Payment success rate
-* Average order value
-* Recovered orders
-* Recovered revenue
+- Orders created
+- Orders completed
+- Conversation-to-order conversion
+- Payment success rate
+- Average order value
+- Recovered orders
+- Recovered revenue
 
 ## AI
 
-* AI resolution rate
-* Human escalation rate
-* AI-to-order conversion
-* Incorrect-response rate
-* Knowledge-gap rate
+- AI resolution rate
+- Human escalation rate
+- AI-to-order conversion
+- Incorrect-response rate
+- Knowledge-gap rate
 
 ## Retention
 
-* Monthly active merchants
-* Merchant retention
-* Merchant churn
-* Repeat usage
+- Monthly active merchants
+- Merchant retention
+- Merchant churn
+- Repeat usage
 
 ## Operational Definitions
 
@@ -1891,13 +1891,13 @@ Do not simply copy a Western e-commerce SaaS model.
 
 If it does not improve:
 
-* Customer support
-* Sales
-* Order management
-* Payment
-* Delivery
-* Customer retention
-* Automation
+- Customer support
+- Sales
+- Order management
+- Payment
+- Delivery
+- Customer retention
+- Automation
 
 it probably does not belong in the MVP.
 
@@ -1998,13 +1998,13 @@ Pricing should eventually be based on the value created rather than merely the n
 
 Potential pricing dimensions:
 
-* Monthly subscription
-* AI conversation allowance
-* Number of products
-* Number of orders
-* Number of connected channels
-* Team members
-* Automation volume
+- Monthly subscription
+- AI conversation allowance
+- Number of products
+- Number of orders
+- Number of connected channels
+- Team members
+- Automation volume
 
 A hybrid subscription + usage model may eventually be appropriate.
 
@@ -2016,20 +2016,20 @@ Do not finalize pricing before testing willingness to pay with real merchants.
 
 Only after the core product demonstrates traction should the product consider:
 
-* More social channels
-* Advanced CRM
-* Advanced marketing
-* Loyalty
-* More delivery integrations
-* Advanced analytics
-* Voice support
-* Multilingual AI
-* AI-assisted merchandising
-* Customer segmentation
-* Predictive customer retention
-* Advanced campaign automation
-* Multi-location businesses
-* International markets
+- More social channels
+- Advanced CRM
+- Advanced marketing
+- Loyalty
+- More delivery integrations
+- Advanced analytics
+- Voice support
+- Multilingual AI
+- AI-assisted merchandising
+- Customer segmentation
+- Predictive customer retention
+- Advanced campaign automation
+- Multi-location businesses
+- International markets
 
 These are **future opportunities, not MVP requirements.**
 

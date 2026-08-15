@@ -22,7 +22,11 @@ describe('Authentication', () => {
     it('returns the verified user for valid credentials', async () => {
       const user = await createUser('owner@example.com');
       const result = await authorizeCredentials(user.email, TEST_PASSWORD);
-      expect(result).toEqual({ id: user.id, name: user.name, email: user.email });
+      expect(result).toEqual({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      });
     });
 
     it('returns null for an invalid password', async () => {

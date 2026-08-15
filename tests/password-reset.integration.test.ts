@@ -7,16 +7,17 @@ import {
   requestPasswordReset,
   resetPassword,
 } from '../src/features/auth/password-reset.service';
-import { createSession, validateSession } from '../src/features/auth/session.service';
+import {
+  createSession,
+  validateSession,
+} from '../src/features/auth/session.service';
 import { createUser, resetDatabase, TEST_PASSWORD } from './helpers';
 
 function captureDeliver() {
   const sent: Array<{ email: string; token: string }> = [];
-  const deliver = jest.fn(
-    async (email: string, token: string) => {
-      sent.push({ email, token });
-    },
-  );
+  const deliver = jest.fn(async (email: string, token: string) => {
+    sent.push({ email, token });
+  });
   return { deliver, sent };
 }
 
@@ -62,7 +63,9 @@ describe('Password reset', () => {
     const newPassword = 'Brand-new-password-99';
     await resetPassword(raw, newPassword);
 
-    const after = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    const after = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+    });
     expect(await verifyPassword(TEST_PASSWORD, after.passwordHash)).toBe(false);
     expect(await verifyPassword(newPassword, after.passwordHash)).toBe(true);
 
@@ -88,7 +91,9 @@ describe('Password reset', () => {
       AppError,
     );
 
-    const after = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    const after = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+    });
     expect(await verifyPassword(TEST_PASSWORD, after.passwordHash)).toBe(true);
   });
 
@@ -100,14 +105,16 @@ describe('Password reset', () => {
     const raw = sent[0].token;
 
     await resetPassword(raw, 'First-new-password-1');
-    await expect(resetPassword(raw, 'Second-new-password-2')).rejects.toBeInstanceOf(
-      AppError,
-    );
+    await expect(
+      resetPassword(raw, 'Second-new-password-2'),
+    ).rejects.toBeInstanceOf(AppError);
 
-    const after = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
-    expect(await verifyPassword('Second-new-password-2', after.passwordHash)).toBe(
-      false,
-    );
+    const after = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+    });
+    expect(
+      await verifyPassword('Second-new-password-2', after.passwordHash),
+    ).toBe(false);
   });
 
   it('a new reset request supersedes the previous token', async () => {
@@ -128,15 +135,17 @@ describe('Password reset', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].tokenHash).toBe(hashResetToken(second));
 
-    await expect(resetPassword(first, 'Old-token-password-1')).rejects.toBeInstanceOf(
-      AppError,
-    );
+    await expect(
+      resetPassword(first, 'Old-token-password-1'),
+    ).rejects.toBeInstanceOf(AppError);
     await resetPassword(second, 'New-token-password-2');
 
-    const after = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
-    expect(await verifyPassword('New-token-password-2', after.passwordHash)).toBe(
-      true,
-    );
+    const after = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+    });
+    expect(
+      await verifyPassword('New-token-password-2', after.passwordHash),
+    ).toBe(true);
   });
 
   it('an unknown email returns a uniform response and reveals nothing', async () => {

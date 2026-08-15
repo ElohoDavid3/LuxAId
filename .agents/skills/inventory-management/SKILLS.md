@@ -96,6 +96,7 @@ Repeated or retried requests MUST NOT double-reserve or double-deduct inventory.
 - Order/reservation and release operations MUST be idempotent, keyed by a unique request/order key.
 - Deduplication MUST be enforced by a database unique constraint (or equivalent transaction), so concurrent duplicate requests cannot both pass a lookup-only check.
 - A retried fulfilment or cancellation event MUST NOT apply its inventory effect twice.
+- Implemented key shape: `InventoryMovement` has `@@unique([inventoryId, reason, sourceId])`. Order-scoped operations (reservation, commitment, release, return/refund) use `sourceId = orderId`; `import` uses `sourceId = variantId`; `manual_adjustment` uses a client idempotency key or a generated UUID. Order/fulfilment code MUST pass the orderId as sourceId so retries deduplicate against existing movements.
 ```
 
 ---
@@ -107,6 +108,8 @@ Repeated or retried requests MUST NOT double-reserve or double-deduct inventory.
 - Inventory adjustments MUST be auditable and traceable to the triggering business record (order, payment, refund).
 - Financial and order history MUST be preserved; do not hard-delete or silently rewrite past inventory events.
 - Audit records MUST NOT include secrets or unnecessary sensitive data.
+- Allowed movement reasons are `reservation`, `commitment`, `release`, `return/refund`, `manual_adjustment`, `import`; allowed source types are `ORDER`, `VARIANT`, `MANUAL_ADJUSTMENT` (see inventory.constants.ts).
+- `setStock` (reason `import`) is a single canonical set per variant: only its first call applies; subsequent calls return `alreadyApplied`. Ongoing stock changes MUST use `manual_adjustment`. Any UI calling `setStock` again MUST handle the `alreadyApplied` result instead of treating it as success.
 ```
 
 ---

@@ -66,11 +66,19 @@ describe('Multi-tenancy isolation', () => {
     await createMembership(user.id, ownBusiness.id, MembershipRole.OWNER);
     const foreignBusiness = await createBusiness('Tenant Ghost Foreign');
 
-    const missing = requireActiveMembership(user.id, 'does-not-exist');
-    const unauthorized = requireActiveMembership(user.id, foreignBusiness.id);
+    const [missing, unauthorized] = await Promise.allSettled([
+      requireActiveMembership(user.id, 'does-not-exist'),
+      requireActiveMembership(user.id, foreignBusiness.id),
+    ]);
 
-    await expect(missing).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await expect(unauthorized).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(missing.status).toBe('rejected');
+    expect((missing as PromiseRejectedResult).reason).toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect(unauthorized.status).toBe('rejected');
+    expect((unauthorized as PromiseRejectedResult).reason).toMatchObject({
+      code: 'FORBIDDEN',
+    });
   });
 
   it('never lets a client-supplied businessId bypass isolation', async () => {
@@ -93,11 +101,7 @@ describe('Multi-tenancy isolation', () => {
   it('denies an unauthorized role a restricted action', async () => {
     const user = await createUser('tenant-role-deny@example.com');
     const business = await createBusiness('Tenant Role Deny');
-    await createMembership(
-      user.id,
-      business.id,
-      MembershipRole.SUPPORT_AGENT,
-    );
+    await createMembership(user.id, business.id, MembershipRole.SUPPORT_AGENT);
 
     await expect(
       requireScope(user.id, business.id, 'orders'),

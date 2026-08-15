@@ -74,8 +74,12 @@ describe('Domain foundation schema', () => {
     });
 
     it('queries scoped to a businessId never cross the tenant boundary', async () => {
-      const businessA = await prisma.business.create({ data: { name: 'Boundary A' } });
-      const businessB = await prisma.business.create({ data: { name: 'Boundary B' } });
+      const businessA = await prisma.business.create({
+        data: { name: 'Boundary A' },
+      });
+      const businessB = await prisma.business.create({
+        data: { name: 'Boundary B' },
+      });
 
       const customerA = await prisma.customer.create({
         data: { businessId: businessA.id, name: 'Customer A' },
@@ -101,7 +105,9 @@ describe('Domain foundation schema', () => {
         },
       });
 
-      const ordersOfA = await prisma.order.findMany({ where: { businessId: businessA.id } });
+      const ordersOfA = await prisma.order.findMany({
+        where: { businessId: businessA.id },
+      });
       expect(ordersOfA).toHaveLength(1);
       expect(ordersOfA[0].totalAmount).toBe(1000);
       expect(ordersOfA.every((o) => o.businessId === businessA.id)).toBe(true);
@@ -109,7 +115,7 @@ describe('Domain foundation schema', () => {
   });
 
   describe('PaymentAttempt (1:N with Order)', () => {
-    async function makeOrderWithAttempt(businessId: string, ref: string) {
+    async function makeOrderWithAttempt(businessId: string) {
       const customer = await prisma.customer.create({
         data: { businessId, name: 'Paying customer' },
       });
@@ -125,8 +131,10 @@ describe('Domain foundation schema', () => {
     }
 
     it('supports multiple payment attempts per order (orderId is not unique)', async () => {
-      const business = await prisma.business.create({ data: { name: 'Multi-attempt' } });
-      const { order } = await makeOrderWithAttempt(business.id, 'unused');
+      const business = await prisma.business.create({
+        data: { name: 'Multi-attempt' },
+      });
+      const { order } = await makeOrderWithAttempt(business.id);
 
       const first = await prisma.paymentAttempt.create({
         data: {
@@ -150,14 +158,18 @@ describe('Domain foundation schema', () => {
       });
 
       expect(second.id).not.toBe(first.id);
-      const attempts = await prisma.paymentAttempt.findMany({ where: { orderId: order.id } });
+      const attempts = await prisma.paymentAttempt.findMany({
+        where: { orderId: order.id },
+      });
       expect(attempts).toHaveLength(2);
       expect(attempts.every((a) => a.orderId === order.id)).toBe(true);
     });
 
     it('enforces a unique transactionReference per attempt (idempotency backing)', async () => {
-      const business = await prisma.business.create({ data: { name: 'Unique ref' } });
-      const { order } = await makeOrderWithAttempt(business.id, 'unused');
+      const business = await prisma.business.create({
+        data: { name: 'Unique ref' },
+      });
+      const { order } = await makeOrderWithAttempt(business.id);
 
       const data = {
         businessId: business.id,
@@ -168,7 +180,9 @@ describe('Domain foundation schema', () => {
         status: PaymentAttemptStatus.PENDING,
       };
       await prisma.paymentAttempt.create({ data });
-      await expect(prisma.paymentAttempt.create({ data })).rejects.toMatchObject({ code: 'P2002' });
+      await expect(
+        prisma.paymentAttempt.create({ data }),
+      ).rejects.toMatchObject({ code: 'P2002' });
     });
   });
 
@@ -186,12 +200,25 @@ describe('Domain foundation schema', () => {
     });
 
     it('rejects negative available/reserved quantities at the database level', async () => {
-      const business = await prisma.business.create({ data: { name: 'Neg stock' } });
+      const business = await prisma.business.create({
+        data: { name: 'Neg stock' },
+      });
       const product = await prisma.product.create({
-        data: { businessId: business.id, name: 'P', description: 'd', price: 1000 },
+        data: {
+          businessId: business.id,
+          name: 'P',
+          description: 'd',
+          price: 1000,
+        },
       });
       const variant = await prisma.productVariant.create({
-        data: { businessId: business.id, productId: product.id, name: 'V', sku: 'v-neg', attributes: {} },
+        data: {
+          businessId: business.id,
+          productId: product.id,
+          name: 'V',
+          sku: 'v-neg',
+          attributes: {},
+        },
       });
 
       await expect(
@@ -214,15 +241,33 @@ describe('Domain foundation schema', () => {
     });
 
     it('supports conditional decrement to prevent overselling', async () => {
-      const business = await prisma.business.create({ data: { name: 'Oversell' } });
+      const business = await prisma.business.create({
+        data: { name: 'Oversell' },
+      });
       const product = await prisma.product.create({
-        data: { businessId: business.id, name: 'P', description: 'd', price: 1000 },
+        data: {
+          businessId: business.id,
+          name: 'P',
+          description: 'd',
+          price: 1000,
+        },
       });
       const variant = await prisma.productVariant.create({
-        data: { businessId: business.id, productId: product.id, name: 'V', sku: 'v-cond', attributes: {} },
+        data: {
+          businessId: business.id,
+          productId: product.id,
+          name: 'V',
+          sku: 'v-cond',
+          attributes: {},
+        },
       });
       await prisma.inventory.create({
-        data: { businessId: business.id, productVariantId: variant.id, available: 2, reserved: 0 },
+        data: {
+          businessId: business.id,
+          productVariantId: variant.id,
+          available: 2,
+          reserved: 0,
+        },
       });
 
       const overflow = await prisma.$executeRawUnsafe(
@@ -248,16 +293,36 @@ describe('Domain foundation schema', () => {
 
   describe('Product status', () => {
     it('accepts only DRAFT, ACTIVE, ARCHIVED', async () => {
-      const business = await prisma.business.create({ data: { name: 'Statuses' } });
+      const business = await prisma.business.create({
+        data: { name: 'Statuses' },
+      });
 
       const draft = await prisma.product.create({
-        data: { businessId: business.id, name: 'D', description: 'd', price: 100, status: ProductStatus.DRAFT },
+        data: {
+          businessId: business.id,
+          name: 'D',
+          description: 'd',
+          price: 100,
+          status: ProductStatus.DRAFT,
+        },
       });
       const active = await prisma.product.create({
-        data: { businessId: business.id, name: 'A', description: 'd', price: 100, status: ProductStatus.ACTIVE },
+        data: {
+          businessId: business.id,
+          name: 'A',
+          description: 'd',
+          price: 100,
+          status: ProductStatus.ACTIVE,
+        },
       });
       const archived = await prisma.product.create({
-        data: { businessId: business.id, name: 'R', description: 'd', price: 100, status: ProductStatus.ARCHIVED },
+        data: {
+          businessId: business.id,
+          name: 'R',
+          description: 'd',
+          price: 100,
+          status: ProductStatus.ARCHIVED,
+        },
       });
 
       const statuses = await prisma.product.findMany({
@@ -265,12 +330,18 @@ describe('Domain foundation schema', () => {
         select: { status: true },
       });
       expect(new Set(statuses.map((s) => s.status))).toEqual(
-        new Set([ProductStatus.DRAFT, ProductStatus.ACTIVE, ProductStatus.ARCHIVED]),
+        new Set([
+          ProductStatus.DRAFT,
+          ProductStatus.ACTIVE,
+          ProductStatus.ARCHIVED,
+        ]),
       );
     });
 
     it('rejects OUT_OF_STOCK as a product status at the database level', async () => {
-      const business = await prisma.business.create({ data: { name: 'No oos' } });
+      const business = await prisma.business.create({
+        data: { name: 'No oos' },
+      });
       await expect(
         prisma.$executeRawUnsafe(
           `INSERT INTO "Product" ("id", "businessId", "name", "description", "price", "status")
@@ -297,7 +368,9 @@ describe('Domain foundation schema', () => {
 
   describe('DeliveryZone', () => {
     it('stores merchant-defined coverage labels (no GIS or coordinates)', async () => {
-      const business = await prisma.business.create({ data: { name: 'Delivery' } });
+      const business = await prisma.business.create({
+        data: { name: 'Delivery' },
+      });
       const zone = await prisma.deliveryZone.create({
         data: {
           businessId: business.id,
@@ -307,7 +380,9 @@ describe('Domain foundation schema', () => {
         },
       });
 
-      const found = await prisma.deliveryZone.findUniqueOrThrow({ where: { id: zone.id } });
+      const found = await prisma.deliveryZone.findUniqueOrThrow({
+        where: { id: zone.id },
+      });
       expect(found.coverage).toEqual(['Yaba', 'Ikeja', 'Surulere']);
 
       const rows = await prisma.$queryRawUnsafe<{ data_type: string }[]>(
@@ -320,37 +395,65 @@ describe('Domain foundation schema', () => {
 
   describe('Unique constraints are internally consistent', () => {
     it('enforces 1:1 BusinessSettings per business', async () => {
-      const business = await prisma.business.create({ data: { name: 'Settings unique' } });
-      await prisma.businessSettings.create({ data: { businessId: business.id } });
+      const business = await prisma.business.create({
+        data: { name: 'Settings unique' },
+      });
+      await prisma.businessSettings.create({
+        data: { businessId: business.id },
+      });
       await expect(
         prisma.businessSettings.create({ data: { businessId: business.id } }),
       ).rejects.toMatchObject({ code: 'P2002' });
     });
 
     it('enforces unique customer channel identity per channel', async () => {
-      const business = await prisma.business.create({ data: { name: 'Channel unique' } });
+      const business = await prisma.business.create({
+        data: { name: 'Channel unique' },
+      });
       const customer = await prisma.customer.create({
         data: { businessId: business.id, name: 'C' },
       });
-      const data = { businessId: business.id, customerId: customer.id, channel: 'whatsapp', channelId: '+2348000000000' };
+      const data = {
+        businessId: business.id,
+        customerId: customer.id,
+        channel: 'whatsapp',
+        channelId: '+2348000000000',
+      };
       await prisma.customerChannelIdentity.create({ data });
-      await expect(prisma.customerChannelIdentity.create({ data })).rejects.toMatchObject({
+      await expect(
+        prisma.customerChannelIdentity.create({ data }),
+      ).rejects.toMatchObject({
         code: 'P2002',
       });
     });
 
     it('enforces a single Delivery per Order (orderId unique) while allowing one payment attempt per order to be non-unique', async () => {
-      const business = await prisma.business.create({ data: { name: 'Delivery unique' } });
+      const business = await prisma.business.create({
+        data: { name: 'Delivery unique' },
+      });
       const customer = await prisma.customer.create({
         data: { businessId: business.id, name: 'C' },
       });
       const order = await prisma.order.create({
-        data: { businessId: business.id, customerId: customer.id, status: OrderStatus.PAID, totalAmount: 5000 },
+        data: {
+          businessId: business.id,
+          customerId: customer.id,
+          status: OrderStatus.PAID,
+          totalAmount: 5000,
+        },
       });
 
-      await prisma.delivery.create({ data: { businessId: business.id, orderId: order.id, status: 'PENDING' } });
+      await prisma.delivery.create({
+        data: { businessId: business.id, orderId: order.id, status: 'PENDING' },
+      });
       await expect(
-        prisma.delivery.create({ data: { businessId: business.id, orderId: order.id, status: 'PENDING' } }),
+        prisma.delivery.create({
+          data: {
+            businessId: business.id,
+            orderId: order.id,
+            status: 'PENDING',
+          },
+        }),
       ).rejects.toMatchObject({ code: 'P2002' });
     });
   });

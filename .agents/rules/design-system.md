@@ -50,7 +50,7 @@ regenerate:
 ### Import
 
 ```css
-@import "../../tokens/design-tokens.css";
+@import '../../tokens/design-tokens.css';
 ```
 
 ### Naming

@@ -226,7 +226,7 @@ Webhook delivery can fail. The system must not silently leave verified payments 
 
 A refund is not complete until the provider confirms it. Pending refunds MUST have a recovery path like pending payments.
 
-```
+````
 - The refund attempt MUST be persisted with a unique refund reference before calling the provider.
 - PAID → REFUNDED MUST be applied only after the provider confirms the refund server-side.
 - A refund still pending past a defined window MUST be re-queried with the provider on a server-side schedule; never client-side.
@@ -239,11 +239,13 @@ A refund is not complete until the provider confirms it. Pending refunds MUST ha
 
 Every tenant-owned entity must have a reliable business boundary.
 
-```
+````
+
 - Authorization MUST be enforced server-side for every read/write operation.
 - Never rely on UI filtering to enforce tenant isolation.
 - Every query to a tenant-owned table MUST include the tenant boundary (e.g., `tenantId`) server-side.
 - Never trust client- or AI-provided tenant/customer/order identifiers without ownership resolution.
+
 ```
 
 ---
@@ -264,10 +266,12 @@ AI tools/actions should:
 ### Verified Business Knowledge
 
 ```
+
 - AI MUST ground answers in authoritative domain records (products, inventory, prices, policies).
 - Knowledge used by AI MUST be refreshed or marked stale when the source records change.
 - AI MUST NOT fill missing business facts with plausible assumptions; ask for clarification or escalate.
 - AI actions that change business state MUST go through the same validation and authorization as human actions.
+
 ```
 
 ---
@@ -277,6 +281,7 @@ AI tools/actions should:
 `Inventory` stores exactly two quantity fields: `available` (sellable now) and `reserved` (held by in-flight orders). `allocated` is a fulfilment lifecycle condition, NOT a third Inventory quantity. When an order reaches `READY_FOR_DELIVERY`, the reserved quantity is committed: the reservation is consumed (reserved decremented), the commitment is represented through the Order/OrderItem domain, and the change is recorded as an `InventoryMovement`. Do NOT add an `allocated` field to `Inventory`.
 
 ```
+
 - Reservation MUST happen atomically with order confirmation (DRAFT → AWAITING_PAYMENT), conditionally (available >= quantity), and MUST be idempotent.
 - A failed reservation MUST reject the transition (INSUFFICIENT_STOCK); stock MUST never go negative.
 - Reserved stock is committed when the order reaches READY_FOR_DELIVERY (the guard on that transition); the commitment is represented through Order/OrderItem and recorded as an `InventoryMovement`, never as a third quantity.
@@ -284,6 +289,7 @@ AI tools/actions should:
 - PAID → REFUNDED restores stock to available only after the refund is confirmed server-side. The merchant's configured restock policy applies; when none is configured, the default is to return the quantity to available.
 - Every inventory change MUST record a reason/source and remain auditable (see database.md).
 - See the inventory-management skill and ecommerce-domain.md for the canonical model.
+
 ```
 
 ---
@@ -291,10 +297,12 @@ AI tools/actions should:
 ## Fulfilment and Follow-up
 
 ```
+
 - Fulfilment MUST NOT start before the order reaches PAID.
 - Delivery progression uses the order state machine (READY_FOR_DELIVERY → SHIPPED → DELIVERED).
 - Abandoned-order recovery targets orders stuck in AWAITING_PAYMENT beyond the defined window.
 - Automated notifications/follow-ups MUST be idempotent.
+
 ```
 
 ---
@@ -304,9 +312,11 @@ AI tools/actions should:
 Error codes and their HTTP mapping are owned by `error-handling.md`. Do not introduce codes outside that canonical taxonomy; `error-handling.md` is the single reference for code names, meanings, and status codes.
 
 ```
+
 - Errors MUST preserve context for logs without leaking secrets.
 - User-facing messages MUST be safe, actionable, and never expose internals.
 - Failed transitions MUST leave the order/payment in a valid state.
+
 ```
 
 ---
@@ -320,10 +330,12 @@ Integration failures must produce recoverable application states, not silent cor
 Delivery and fulfilment providers MUST also be isolated behind integration boundaries:
 
 ```
+
 - Delivery state progression (READY_FOR_DELIVERY → SHIPPED → DELIVERED) MUST be driven by domain-validated events, never raw provider payloads.
 - Tracking identifiers MUST be verified and stored on the Delivery record; the SHIPPED guard requires tracking created.
 - Delivery provider failures MUST produce recoverable states with retries, never silent corruption of order state.
 - Delivery fees MUST come from authoritative DeliveryZone configuration, never client- or AI-supplied values.
+
 ```
 
 ---
@@ -347,3 +359,4 @@ Important business operations should produce structured audit/event records, esp
 - AI-triggered business actions.
 
 Do not log secrets or unnecessary sensitive payloads.
+```

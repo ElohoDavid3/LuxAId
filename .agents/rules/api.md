@@ -131,23 +131,23 @@ Errors must be safe, actionable, consistent, and free of secrets or internal imp
 
 Use standard status codes consistently. Never return 200 for errors.
 
-| Status | Usage                                                   |
-| ------ | ------------------------------------------------------- |
-| 200    | Successful read or update                               |
-| 201    | Successful creation                                     |
-| 202    | Accepted; async work queued (e.g., PAYMENT_PENDING)     |
-| 204    | Successful deletion (no body)                           |
-| 400    | Validation error (invalid input)                        |
-| 401    | Not authenticated                                       |
-| 403    | Not authorized (authenticated but not allowed)          |
-| 404    | Resource not found                                      |
-| 409    | Conflict (duplicate resource, invalid state transition) |
-| 413    | Request body too large                                  |
-| 422    | Business-logic failure (e.g., PAYMENT_FAILED)           |
-| 429    | Rate limited                                            |
-| 500    | Internal error (logged, never exposed)                  |
-| 502    | Upstream/external provider failure (INTEGRATION_FAILURE)|
-| 503    | Provider/temporary service unavailable; retry later     |
+| Status | Usage                                                    |
+| ------ | -------------------------------------------------------- |
+| 200    | Successful read or update                                |
+| 201    | Successful creation                                      |
+| 202    | Accepted; async work queued (e.g., PAYMENT_PENDING)      |
+| 204    | Successful deletion (no body)                            |
+| 400    | Validation error (invalid input)                         |
+| 401    | Not authenticated                                        |
+| 403    | Not authorized (authenticated but not allowed)           |
+| 404    | Resource not found                                       |
+| 409    | Conflict (duplicate resource, invalid state transition)  |
+| 413    | Request body too large                                   |
+| 422    | Business-logic failure (e.g., PAYMENT_FAILED)            |
+| 429    | Rate limited                                             |
+| 500    | Internal error (logged, never exposed)                   |
+| 502    | Upstream/external provider failure (INTEGRATION_FAILURE) |
+| 503    | Provider/temporary service unavailable; retry later      |
 
 ---
 

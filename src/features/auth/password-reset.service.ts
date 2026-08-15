@@ -62,7 +62,10 @@ export async function resetPassword(
   rawToken: string,
   newPassword: string,
 ): Promise<void> {
-  if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
+  if (
+    typeof newPassword !== 'string' ||
+    newPassword.length < MIN_PASSWORD_LENGTH
+  ) {
     throw new AppError(
       'VALIDATION_ERROR',
       'Your new password must be at least 8 characters long.',
