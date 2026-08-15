@@ -1,8 +1,8 @@
 # AI Behaviour Rules
 
-> **VERSION** : 1.0
+> **VERSION** : 1.1
 > **UPDATED** : 2026-08-13
-> **COMPANION** : `architecture.md` (AI boundary) · `multi-tenancy.md` (tenant scoping) · `error-handling.md` (error taxonomy) · `AGENTS.md` (AI principles)
+> **COMPANION** : `architecture.md` (AI boundary) · `multi-tenancy.md` (tenant scoping) · `error-handling.md` (error taxonomy) · `AGENTS.md` (AI principles) · `ai-commerce-agent` skill (implementation) · `human-handoff` skill (escalation)
 
 ---
 
@@ -73,6 +73,13 @@ For financial or operational actions:
 
 `MUST NOT` claim an action succeeded until the authoritative state confirms it.
 
+A customer's claim, a screenshot, a frontend callback, a redirect, or an unverified webhook is never proof of payment.
+
+```
+MUST NOT treat a customer claim, screenshot, frontend callback, redirect, or unverified webhook as proof of payment.
+MUST NOT transition an order to PAID on any basis other than server-side verification against the provider.
+```
+
 ---
 
 ## Authorization and Tools
@@ -86,6 +93,7 @@ MUST receive validated input and return structured outcomes.
 MUST apply the same validation and authorization rules as non-AI actions.
 MUST NOT mutate business data directly; only the domain layer may change state.
 MUST surface uncertainty instead of guessing.
+MUST NOT fabricate a result when a tool fails or returns nothing.
 ```
 
 ---
@@ -118,10 +126,12 @@ Repeated AI/tool calls must not produce duplicate business effects.
 
 ## Product Recommendations
 
+```
 - Recommend only products returned from verified business data.
 - Respect availability, variants, price constraints, and merchant rules.
-- Never recommend an unavailable product as available.
+- NEVER recommend an unavailable product as available.
 - Do not manufacture a product to satisfy a request.
+```
 
 ---
 
@@ -151,7 +161,14 @@ Escalate when:
 - There is a complaint requiring human judgement.
 - An order problem cannot be safely resolved.
 
-When a human takes control, automated AI responses must stop until control is explicitly returned.
+When a human takes control:
+
+```
+- Automated AI responses MUST stop until control is explicitly returned.
+- AI business actions (orders, payments, refunds, cancellations) MUST also be suppressed.
+- The conversation control state MUST be checked before responding or acting.
+- AI resumes only after an explicit operator release; never on a timer or customer silence.
+```
 
 ---
 
@@ -160,6 +177,8 @@ When a human takes control, automated AI responses must stop until control is ex
 ```
 MUST NOT execute actions that require human judgement without human approval.
 MUST request approval for: refunds, cancellations, price changes, and other irreversible or high-impact actions.
+Approval MUST come from an authorized human operator via a documented, audited action; NEVER inferred from the customer's agreement.
+Approval and the resulting action MUST produce structured audit records.
 ```
 
 ---

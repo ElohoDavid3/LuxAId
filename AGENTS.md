@@ -144,7 +144,7 @@ _(Note: AI agents must strictly adhere to this stack and not introduce new frame
 
 - All database schema changes must be executed via the `db-migration-runner` skill and managed with Prisma.
 - Never manually alter the database schema or drop columns that are actively used in production.
-- **Critical Multi-tenant Rule:** Every query to a tenant-owned table MUST include a `where: { tenantId }` clause (or equivalent) in Prisma to ensure isolation.
+- **Critical Multi-tenant Rule:** Every query to a tenant-owned table MUST include a `where: { businessId }` clause (or equivalent tenant boundary) in Prisma to ensure isolation.
 
 ## Testing and Quality Assurance
 
@@ -191,15 +191,24 @@ luxaid/
 
 ## Core Data Models
 
-These match the database schema exactly. Use these as the reference for all data operations. Every business-owned entity must reference a `Tenant` (or `Merchant`).
+`Business` is the canonical domain entity and the root tenant. "Tenant" refers to the architectural multi-tenancy isolation concept; the tenant-boundary field on business-owned records is `businessId`. Every business-owned record MUST belong to a Business, and every query to a business-owned table MUST include the `businessId` boundary server-side.
 
-### Tenant
+The canonical domain model is the 23-entity list defined authoritatively in `.agents/rules/ecommerce-domain.md` (see also PRD §31):
+
+Business, User, BusinessMembership, BusinessSettings, Product, ProductVariant, Inventory, Customer, CustomerChannelIdentity, Conversation, Message, KnowledgeSource, Escalation, Order, OrderItem, PaymentAttempt, Delivery, DeliveryZone, Automation, AutomationExecution, Notification, AuditLog, AnalyticsEvent
+
+`InventoryMovement` is an approved, rule-supported domain extension for auditable inventory change history (see `.agents/rules/ecommerce-domain.md`).
+
+Reference models:
+
+### Business
 
 ```
 id              String    @id @default(cuid())
 name            String
 createdAt       DateTime  @default(now())
-users           User[]
+memberships     BusinessMembership[]
+settings        BusinessSettings?
 products        Product[]
 customers       Customer[]
 orders          Order[]
@@ -209,24 +218,24 @@ orders          Order[]
 
 ```
 id              String    @id @default(cuid())
-tenantId        String
 name            String
 email           String    @unique
 passwordHash    String
 createdAt       DateTime  @default(now())
-tenant          Tenant    @relation(...)
+memberships     BusinessMembership[]
 ```
 
 ### Product
 
 ```
 id              String    @id @default(cuid())
-tenantId        String
+businessId      String
 name            String
 description     String
 price           Int
+status          String    // DRAFT | ACTIVE | ARCHIVED
 createdAt       DateTime  @default(now())
-tenant          Tenant    @relation(...)
+business        Business  @relation(...)
 variants        ProductVariant[]
 ```
 
@@ -236,20 +245,50 @@ variants        ProductVariant[]
 id              String    @id @default(cuid())
 productId       String
 name            String
-inventory       Int
 sku             String
+attributes      Json
 product         Product   @relation(...)
+inventory       Inventory?
+```
+
+Inventory quantities are NOT stored on Product or ProductVariant. `Inventory` is the single authoritative inventory source.
+
+### Inventory
+
+```
+id              String    @id @default(cuid())
+productVariantId String   @unique
+available       Int
+reserved        Int
+location        String?
+productVariant  ProductVariant @relation(...)
+movements       InventoryMovement[]
+```
+
+### InventoryMovement
+
+```
+id              String    @id @default(cuid())
+inventoryId     String
+quantityDelta   Int
+reason          String
+sourceType      String
+sourceId        String
+createdAt       DateTime  @default(now())
+inventory       Inventory @relation(...)
 ```
 
 ### Customer
 
 ```
 id              String    @id @default(cuid())
-tenantId        String
+businessId      String
 name            String
 email           String?
 phone           String?
-tenant          Tenant    @relation(...)
+location        String?
+business        Business  @relation(...)
+channelIdentities CustomerChannelIdentity[]
 conversations   Conversation[]
 orders          Order[]
 ```
@@ -259,36 +298,47 @@ orders          Order[]
 ```
 id              String    @id @default(cuid())
 customerId      String
-history         Json
+status          String
+controlState    String
 createdAt       DateTime  @default(now())
 customer        Customer  @relation(...)
+messages        Message[]
+escalations     Escalation[]
 ```
 
 ### Order
 
 ```
 id              String    @id @default(cuid())
-tenantId        String
+businessId      String
 customerId      String
 status          String
 totalAmount     Int
 createdAt       DateTime  @default(now())
-tenant          Tenant    @relation(...)
+business        Business  @relation(...)
 customer        Customer  @relation(...)
-payment         Payment?
+items           OrderItem[]
+paymentAttempts PaymentAttempt[]
+delivery        Delivery?
 ```
 
-### Payment
+### PaymentAttempt
 
 ```
 id              String    @id @default(cuid())
-orderId         String    @unique
-reference       String    @unique
+orderId         String
+transactionReference String @unique
+gatewayReference String?  @unique
 status          String
 amount          Int
+currency        String
 createdAt       DateTime  @default(now())
 order           Order     @relation(...)
 ```
+
+`PaymentAttempt.orderId` is intentionally NOT unique: an Order has a 1:N relationship with PaymentAttempt and a customer may retry payment. Only a successfully verified attempt may transition the order to PAID. Provider verification results (status, amount, currency, reference) are recorded on the attempt for auditability.
+
+Remaining canonical entities (BusinessMembership, BusinessSettings, CustomerChannelIdentity, Message, KnowledgeSource, Escalation, OrderItem, Delivery, DeliveryZone, Automation, AutomationExecution, Notification, AuditLog, AnalyticsEvent) are defined in `.agents/rules/ecommerce-domain.md`.
 
 ## Environment Variables
 

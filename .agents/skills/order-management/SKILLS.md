@@ -12,12 +12,13 @@ PROCESSING
 READY_FOR_DELIVERY
 SHIPPED
 DELIVERED
+RETURNED
 CANCELLED
 FAILED
 REFUNDED
 ```
 
-Do not invent alternative names for these states. `CANCELLED`, `FAILED`, and `REFUNDED` are terminal: no transitions out.
+Do not invent alternative names for these states. `RETURNED` is reachable only from `DELIVERED`. `CANCELLED`, `FAILED`, and `REFUNDED` are terminal: no transitions out.
 
 ## Transition Matrix
 
@@ -34,6 +35,8 @@ Every order state change must be an explicit, guarded transition triggered throu
 | `PROCESSING`                        | `READY_FOR_DELIVERY` | merchant                                 | fulfilment ready, inventory allocated                   |
 | `READY_FOR_DELIVERY`                | `SHIPPED`            | merchant or delivery provider            | tracking created                                        |
 | `SHIPPED`                           | `DELIVERED`          | merchant or delivery provider            | delivery confirmed                                      |
+| `DELIVERED`                         | `RETURNED`           | merchant, return recorded                | delivery confirmed; return validated                    |
+| `RETURNED`                          | `REFUNDED`           | merchant, refund verified with provider  | refund confirmed server-side                            |
 | `CANCELLED` / `FAILED` / `REFUNDED` | —                    | none                                     | terminal; no transitions out                            |
 
 Rules:
@@ -73,12 +76,14 @@ An order awaiting payment is not paid. Transition to `PAID` only after the appro
 - The internal payment attempt is persisted before the customer is redirected to the provider.
 - Never treat a redirect, client-side state, or unverified webhook payload as proof of payment.
 
-## Cancellation and Refunds
+## Cancellation, Returns and Refunds
 
-Cancellation and refund workflows must preserve historical order/payment information. Never claim a refund succeeded without authoritative confirmation.
+Cancellation, return, and refund workflows must preserve historical order/payment information. Never claim a refund succeeded without authoritative confirmation.
 
-- Never hard-delete cancelled or refunded orders or payments.
+- Never hard-delete cancelled, returned, or refunded orders or payments.
 - `AWAITING_PAYMENT → CANCELLED` requires no confirmed payment; `PAID → REFUNDED` requires refund confirmed server-side with the provider.
+- A returned order moves `DELIVERED → RETURNED` only after the return is recorded and validated; the original order and payment history are preserved.
+- `RETURNED → REFUNDED` requires the refund confirmed server-side with the provider, never before.
 - Refunds and other irreversible or high-impact actions require human approval per the `ai-commerce-agent` skill.
 
 ## Idempotency
@@ -130,6 +135,7 @@ Cover with integration tests (Jest) and E2E where applicable:
 - Duplicate order creation (idempotency key) creates one order.
 - Payment verification + `PAID` transition atomicity.
 - Cancellation and refund preserve history.
+- Return flow: `DELIVERED → RETURNED → REFUNDED` requires a recorded return and authoritative refund confirmation.
 - Refund requires human approval and authoritative provider confirmation.
 - Abandoned-order recovery: late webhook + recovery do not double-apply.
 - Audit records written for order state changes.

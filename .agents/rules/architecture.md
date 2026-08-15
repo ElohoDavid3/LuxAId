@@ -78,11 +78,12 @@ The order lifecycle is:
 
 `DRAFT → AWAITING_PAYMENT → PAID → PROCESSING → READY_FOR_DELIVERY → SHIPPED → DELIVERED`
 
-Alternative terminal/exception states include:
+Alternative exception/terminal states include:
 
-- `CANCELLED`
-- `FAILED`
-- `REFUNDED`
+- `RETURNED` — reachable only from `DELIVERED`
+- `CANCELLED` (terminal)
+- `FAILED` (terminal)
+- `REFUNDED` (terminal)
 
 Payment states:
 
@@ -104,6 +105,8 @@ Payment states:
 | `PROCESSING`                        | `READY_FOR_DELIVERY` | merchant                                 | fulfilment ready, inventory allocated                   |
 | `READY_FOR_DELIVERY`                | `SHIPPED`            | merchant or delivery provider            | tracking created                                        |
 | `SHIPPED`                           | `DELIVERED`          | merchant or delivery provider            | delivery confirmed                                      |
+| `DELIVERED`                         | `RETURNED`           | merchant, return recorded                | delivery confirmed; return validated                    |
+| `RETURNED`                          | `REFUNDED`           | merchant, refund verified with provider  | refund confirmed server-side                            |
 | `CANCELLED` / `FAILED` / `REFUNDED` | —                    | none                                     | terminal; no transitions out                            |
 
 ```
@@ -271,12 +274,12 @@ AI tools/actions should:
 
 ## Inventory Lifecycle
 
-Inventory is tracked as `available` (sellable) and `reserved` (held by in-flight orders). Committing means moving reserved stock to allocated at fulfilment.
+`Inventory` stores exactly two quantity fields: `available` (sellable now) and `reserved` (held by in-flight orders). `allocated` is a fulfilment lifecycle condition, NOT a third Inventory quantity. When an order reaches `READY_FOR_DELIVERY`, the reserved quantity is committed: the reservation is consumed (reserved decremented), the commitment is represented through the Order/OrderItem domain, and the change is recorded as an `InventoryMovement`. Do NOT add an `allocated` field to `Inventory`.
 
 ```
 - Reservation MUST happen atomically with order confirmation (DRAFT → AWAITING_PAYMENT), conditionally (available >= quantity), and MUST be idempotent.
 - A failed reservation MUST reject the transition (INSUFFICIENT_STOCK); stock MUST never go negative.
-- Reserved stock is committed/allocated when the order reaches READY_FOR_DELIVERY (the guard on that transition).
+- Reserved stock is committed when the order reaches READY_FOR_DELIVERY (the guard on that transition); the commitment is represented through Order/OrderItem and recorded as an `InventoryMovement`, never as a third quantity.
 - AWAITING_PAYMENT → CANCELLED and AWAITING_PAYMENT → FAILED MUST release the reservation back to available, atomically with the transition and idempotently.
 - PAID → REFUNDED restores stock to available only after the refund is confirmed server-side. The merchant's configured restock policy applies; when none is configured, the default is to return the quantity to available.
 - Every inventory change MUST record a reason/source and remain auditable (see database.md).

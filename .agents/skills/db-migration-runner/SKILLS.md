@@ -36,17 +36,17 @@ Read `.agents/rules/database.md` (schema conventions, money handling, auditabili
 
 ## Multi-Tenancy Rules
 
-- Every new tenant-owned entity must include a `tenantId` field and a relation to `Tenant`.
+- Every new tenant-owned entity must include a `businessId` field and a relation to `Business`.
 - Existing tenant-owned tables must keep the tenant boundary intact.
-- Query isolation requires `where: { tenantId }` (or equivalent) in every Prisma query on a tenant-owned model. Ensure any new model is queried with that boundary.
-- Add an index on `tenantId` for tenant-owned models used in common lookups.
+- Query isolation requires `where: { businessId }` (or equivalent tenant boundary) in every Prisma query on a tenant-owned model. Ensure any new model is queried with that boundary.
+- Add an index on `businessId` for tenant-owned models used in common lookups.
 
 ## Pre-Flight Checklist
 
 - [ ] The change maps to a documented requirement.
 - [ ] The generated migration SQL contains no unintended changes.
 - [ ] No active production column is dropped.
-- [ ] New tenant-owned models include `tenantId` and an index on it.
+- [ ] New tenant-owned models include `businessId` and an index on it.
 - [ ] Money columns use `Int` or `BigInt` (kobo), never `Float`.
 - [ ] Lookup keys such as transaction/gateway references have unique constraints.
 - [ ] Financially significant history uses soft-delete (`deletedAt` or equivalent), never hard-delete.
