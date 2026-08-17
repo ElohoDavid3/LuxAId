@@ -75,6 +75,21 @@ enum EscalationStatus {
   CANCELLED
 }
 
+enum ConversationStatus {
+  NEW
+  ACTIVE
+  WAITING_FOR_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum MessageAuthorType {
+  CUSTOMER
+  AI
+  HUMAN
+  SYSTEM
+}
+
 /// Root tenant entity. "Tenant" refers to the architectural multi-tenancy
 /// isolation concept; Business is the canonical domain entity.
 model Business {
@@ -302,7 +317,7 @@ model CustomerChannelIdentity {
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  @@unique([channel, channelId])
+  @@unique([businessId, channel, channelId])
   @@index([businessId])
   @@index([customerId])
 }
@@ -311,7 +326,7 @@ model Conversation {
   id           String                   @id @default(cuid())
   businessId   String
   customerId   String
-  status       String                   @default("OPEN")
+  status       ConversationStatus       @default(NEW)
   controlState ConversationControlState @default(AI_CONTROLLED)
   createdAt    DateTime                 @default(now())
   updatedAt    DateTime                 @updatedAt
@@ -326,16 +341,22 @@ model Conversation {
 }
 
 model Message {
-  id             String   @id @default(cuid())
-  businessId     String
-  conversationId String
-  authorType     String
-  body           String
-  createdAt      DateTime @default(now())
+  id                String            @id @default(cuid())
+  businessId        String
+  conversationId    String
+  authorType        MessageAuthorType
+  // Channel semantics: whatsapp = WhatsApp-originated, instagram =
+  // Instagram-originated, internal = created inside LuxAId by AI, HUMAN, or
+  // SYSTEM. For internal messages providerMessageId is NULL.
+  channel           String
+  providerMessageId String?
+  body              String
+  createdAt         DateTime          @default(now())
 
   business     Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
+  @@unique([businessId, channel, providerMessageId])
   @@index([businessId])
   @@index([conversationId])
 }
@@ -355,6 +376,12 @@ model KnowledgeSource {
   @@index([businessId])
 }
 
+// One active escalation per conversation (status IN ('OPEN','ASSIGNED')) is
+// enforced by a database partial unique index
+// "Escalation_one_active_per_conversation_key" created in the
+// customers_conversations_step93 migration. Prisma 6 PSL cannot express
+// partial indexes; do not remove that index or add a full unique on
+// conversationId (an Order-like 1:N escalation history must remain possible).
 model Escalation {
   id             String           @id @default(cuid())
   businessId     String
