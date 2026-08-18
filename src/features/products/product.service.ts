@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { requireScope } from '../auth/authorization';
 import { AppError } from '../../lib/errors';
 import { ProductStatus, Prisma } from '@prisma/client';
+import { z } from 'zod';
 import {
   createProductSchema,
   listProductsSchema,
@@ -157,5 +158,48 @@ export async function changeProductStatus(
     where: { id: existing.id },
     data: { status: target },
     include: productInclude,
+  });
+}
+
+const searchProductsSchema = z
+  .object({
+    query: z.string().trim().min(1).max(200),
+    minPrice: z.number().int().nonnegative().optional(),
+    maxPrice: z.number().int().nonnegative().optional(),
+  })
+  .strict();
+
+export async function searchProducts(
+  userId: string,
+  requestedBusinessId: string,
+  query: string,
+  filters?: { minPrice?: number; maxPrice?: number },
+): Promise<ProductWithVariants[]> {
+  const membership = await resolveMembership(userId, requestedBusinessId);
+  const data = parseOrThrow(searchProductsSchema, {
+    query,
+    ...filters,
+  });
+
+  const where: Prisma.ProductWhereInput = {
+    businessId: membership.businessId,
+    status: ProductStatus.ACTIVE,
+    OR: [
+      { name: { contains: data.query, mode: 'insensitive' } },
+      { description: { contains: data.query, mode: 'insensitive' } },
+    ],
+  };
+
+  if (data.minPrice !== undefined || data.maxPrice !== undefined) {
+    where.price = {};
+    if (data.minPrice !== undefined) where.price.gte = data.minPrice;
+    if (data.maxPrice !== undefined) where.price.lte = data.maxPrice;
+  }
+
+  return prisma.product.findMany({
+    where,
+    include: productInclude,
+    take: 10,
+    orderBy: { createdAt: 'desc' },
   });
 }

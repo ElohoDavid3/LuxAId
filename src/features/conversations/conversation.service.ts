@@ -1,7 +1,8 @@
 import { prisma } from '../../lib/prisma';
 import { requireScope } from '../auth/authorization';
 import { AppError } from '../../lib/errors';
-import { Prisma } from '@prisma/client';
+import { ConversationControlState, Prisma } from '@prisma/client';
+import { logAudit } from '../auth/audit';
 import {
   createConversationSchema,
   listConversationsSchema,
@@ -90,4 +91,52 @@ export async function listConversations(
     prisma.conversation.count({ where }),
   ]);
   return { items, total };
+}
+
+export async function updateControlState(
+  userId: string,
+  requestedBusinessId: string,
+  conversationId: string,
+  expectedState: ConversationControlState,
+  newState: ConversationControlState,
+): Promise<ConversationWithRelations> {
+  const membership = await resolveMembership(userId, requestedBusinessId);
+
+  const { count } = await prisma.conversation.updateMany({
+    where: {
+      id: conversationId,
+      businessId: membership.businessId,
+      controlState: expectedState,
+    },
+    data: { controlState: newState },
+  });
+
+  if (count === 0) {
+    const conversation = await prisma.conversation.findFirst({
+      where: { id: conversationId, businessId: membership.businessId },
+      select: { id: true, controlState: true },
+    });
+    if (!conversation) {
+      throw new AppError('UNKNOWN_CONVERSATION', 'Conversation not found.');
+    }
+    throw new AppError(
+      'STATE_CONFLICT',
+      `Cannot transition control state from ${expectedState}; current state is ${conversation.controlState}.`,
+    );
+  }
+
+  const updated = await prisma.conversation.findFirstOrThrow({
+    where: { id: conversationId, businessId: membership.businessId },
+    include: conversationInclude,
+  });
+
+  await logAudit({
+    businessId: membership.businessId,
+    eventType: 'CONVERSATION_CONTROL_STATE_CHANGED',
+    actorType: 'AI',
+    actorId: userId,
+    payload: { conversationId, from: expectedState, to: newState },
+  });
+
+  return updated;
 }

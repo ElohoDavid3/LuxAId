@@ -11,6 +11,8 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.string().email().optional(),
+  OPENAI_API_KEY: z.string().min(1).optional(),
+  AI_MODEL: z.string().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);
