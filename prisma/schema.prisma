@@ -68,6 +68,24 @@ enum ConversationControlState {
   HUMAN_CONTROLLED
 }
 
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageDeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+enum CustomerConsentStatus {
+  OPTED_IN
+  OPTED_OUT
+  UNKNOWN
+}
+
 enum EscalationStatus {
   OPEN
   ASSIGNED
@@ -286,14 +304,15 @@ model InventoryMovement {
 }
 
 model Customer {
-  id         String   @id @default(cuid())
-  businessId String
-  name       String
-  email      String?
-  phone      String?
-  location   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id             String               @id @default(cuid())
+  businessId     String
+  name           String
+  email          String?
+  phone          String?
+  location       String?
+  consentStatus  CustomerConsentStatus @default(UNKNOWN)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   business          Business                  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   channelIdentities CustomerChannelIdentity[]
@@ -326,8 +345,10 @@ model Conversation {
   id           String                   @id @default(cuid())
   businessId   String
   customerId   String
+  channel      String?
   status       ConversationStatus       @default(NEW)
   controlState ConversationControlState @default(AI_CONTROLLED)
+  lastInboundAt DateTime?
   createdAt    DateTime                 @default(now())
   updatedAt    DateTime                 @updatedAt
 
@@ -336,22 +357,26 @@ model Conversation {
   messages    Message[]
   escalations Escalation[]
 
+  @@unique([businessId, customerId, channel])
   @@index([businessId])
+  @@index([businessId, channel])
   @@index([customerId])
 }
 
 model Message {
-  id                String            @id @default(cuid())
+  id                String               @id @default(cuid())
   businessId        String
   conversationId    String
   authorType        MessageAuthorType
+  direction         MessageDirection     @default(OUTBOUND)
+  status            MessageDeliveryStatus @default(SENT)
   // Channel semantics: whatsapp = WhatsApp-originated, instagram =
   // Instagram-originated, internal = created inside LuxAId by AI, HUMAN, or
   // SYSTEM. For internal messages providerMessageId is NULL.
   channel           String
   providerMessageId String?
   body              String
-  createdAt         DateTime          @default(now())
+  createdAt         DateTime             @default(now())
 
   business     Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)

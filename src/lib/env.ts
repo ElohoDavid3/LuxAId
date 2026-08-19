@@ -13,6 +13,9 @@ const envSchema = z.object({
   SMTP_FROM: z.string().email().optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
   AI_MODEL: z.string().min(1).optional(),
+  WHATSAPP_APP_SECRET: z.string().trim().min(1).optional(),
+  WHATSAPP_VERIFY_TOKEN: z.string().trim().min(1).optional(),
+  WHATSAPP_ACCESS_TOKEN: z.string().trim().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);

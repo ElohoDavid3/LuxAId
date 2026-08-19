@@ -46,6 +46,7 @@ export async function createConversation(
     data: {
       businessId: membership.businessId,
       customerId: data.customerId,
+      ...(data.channel !== undefined ? { channel: data.channel } : {}),
       ...(data.status !== undefined ? { status: data.status } : {}),
       ...(data.controlState !== undefined
         ? { controlState: data.controlState }

@@ -21,6 +21,7 @@ export function parseOrThrow<O>(schema: z.ZodSchema<O>, input: unknown): O {
 export const createConversationSchema = z
   .object({
     customerId: z.string().trim().min(1, 'customerId is required'),
+    channel: z.string().trim().min(1).optional(),
     status: z.nativeEnum(ConversationStatus).optional(),
     controlState: z.nativeEnum(ConversationControlState).optional(),
   })

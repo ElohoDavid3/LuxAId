@@ -1,0 +1,39 @@
+1. Freeze the PRD
+        ↓
+2. Freeze core business rules
+        ↓
+3. Set up Git/version control
+        ↓
+4. Set up AGENTS.md + .agents/
+        ↓
+5. Establish architecture
+        ↓
+6. Build database/domain foundation
+        ↓
+7. Build authentication + multi-tenancy
+        ↓
+8. Build products + inventory
+        ↓
+9. Build customers + conversations
+        ↓
+10. Build AI commerce agent
+        ↓
+11. Build WhatsApp integration
+        ↓
+12. Build orders
+        ↓
+13. Build Flutterwave integration
+        ↓
+14. Build payment verification
+        ↓
+15. Build human handoff
+        ↓
+16. Test failure scenarios
+        ↓
+17. Security review
+        ↓
+18. Deploy
+        ↓
+19. Get real merchants using it
+        ↓
+20. Iterate based on real usage

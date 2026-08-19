@@ -44,6 +44,8 @@ export async function createMessage(
     business: { connect: { id: membership.businessId } },
     conversation: { connect: { id: conversationId } },
     authorType: data.authorType,
+    direction: data.direction,
+    status: data.status,
     channel: data.channel,
     body: data.body,
     ...(data.providerMessageId != null

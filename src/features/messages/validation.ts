@@ -1,4 +1,8 @@
-import { MessageAuthorType } from '@prisma/client';
+import {
+  MessageAuthorType,
+  MessageDirection,
+  MessageDeliveryStatus,
+} from '@prisma/client';
 import { z, ZodError } from 'zod';
 import { AppError } from '../../lib/errors';
 
@@ -22,6 +26,11 @@ export const createMessageSchema = z
   .object({
     body: z.string().trim().min(1, 'body is required'),
     authorType: z.nativeEnum(MessageAuthorType),
+    direction: z.nativeEnum(MessageDirection).optional().default('OUTBOUND'),
+    status: z
+      .nativeEnum(MessageDeliveryStatus)
+      .optional()
+      .default('SENT'),
     channel: z.string().trim().min(1, 'channel is required'),
     providerMessageId: z.string().trim().min(1).nullable().optional(),
   })
