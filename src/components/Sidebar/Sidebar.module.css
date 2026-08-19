@@ -1,0 +1,208 @@
+/* Sidebar component styles */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ── Brand ──────────────────────────────────────────────────────── */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 1.25rem 1rem 1rem;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.brandIcon {
+  width: 32px;
+  height: 32px;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.brandName {
+  font-family: var(--type-dr-title-large-font-family);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--color-primary);
+}
+
+/* ── Business context ───────────────────────────────────────────── */
+.businessCtx {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.businessLabel {
+  font-size: var(--type-dr-label-small-font-size);
+  font-family: var(--type-dr-label-small-font-family);
+  font-weight: var(--type-dr-label-small-font-weight);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-on-surface-variant);
+  margin-bottom: 0.25rem;
+}
+
+.businessName {
+  font-size: var(--type-dr-title-medium-font-size);
+  font-family: var(--type-dr-title-medium-font-family);
+  font-weight: 600;
+  color: var(--color-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Nav ────────────────────────────────────────────────────────── */
+.nav {
+  flex: 1;
+  padding: 0.75rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.navSection {
+  margin-bottom: 0.5rem;
+}
+
+.navSectionLabel {
+  font-size: var(--type-dr-label-small-font-size);
+  font-family: var(--type-dr-label-small-font-family);
+  font-weight: var(--type-dr-label-small-font-weight);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-on-surface-variant);
+  padding: 0.25rem 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 8px;
+  font-family: var(--type-dr-title-small-font-family);
+  font-size: var(--type-dr-title-small-font-size);
+  font-weight: 500;
+  color: var(--color-on-surface-variant);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  text-decoration: none;
+  position: relative;
+}
+
+.navLink:hover {
+  background-color: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+.navLink.active {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  font-weight: 600;
+}
+
+.navIcon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.navLink.active .navIcon {
+  opacity: 1;
+}
+
+.badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background-color: var(--color-error);
+  color: var(--color-on-error);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────── */
+.footer {
+  padding: 0.75rem 0.5rem;
+  border-top: 1px solid var(--color-outline-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.themeToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 8px;
+  font-family: var(--type-dr-title-small-font-family);
+  font-size: var(--type-dr-title-small-font-size);
+  font-weight: 500;
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.15s ease;
+}
+
+.themeToggle:hover {
+  background-color: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+.userRow {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 8px;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.userName {
+  font-size: var(--type-dr-body-small-font-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signOutBtn {
+  margin-left: auto;
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.signOutBtn:hover {
+  color: var(--color-error);
+}

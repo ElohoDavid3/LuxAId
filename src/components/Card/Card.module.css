@@ -1,0 +1,44 @@
+/* Card component */
+
+.card {
+  background-color: var(--color-surface-container-lowest);
+  border-radius: 12px;
+  border: 1px solid var(--color-outline-variant);
+  overflow: hidden;
+}
+
+.padded {
+  padding: 1.25rem;
+}
+
+.shadow {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Card sections ───────────────────────────────────────────────── */
+
+.header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-outline-variant);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.title {
+  font-family: var(--type-dr-title-medium-font-family);
+  font-size: var(--type-dr-title-medium-font-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.body {
+  padding: 1.25rem;
+}
+
+.footer {
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--color-outline-variant);
+  background-color: var(--color-surface-container-low);
+}

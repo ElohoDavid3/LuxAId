@@ -16,6 +16,9 @@ const envSchema = z.object({
   WHATSAPP_APP_SECRET: z.string().trim().min(1).optional(),
   WHATSAPP_VERIFY_TOKEN: z.string().trim().min(1).optional(),
   WHATSAPP_ACCESS_TOKEN: z.string().trim().min(1).optional(),
+  FLW_PUBLIC_KEY: z.string().trim().min(1).optional(),
+  FLW_SECRET_KEY: z.string().trim().min(1).optional(),
+  FLW_SECRET_HASH: z.string().trim().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);

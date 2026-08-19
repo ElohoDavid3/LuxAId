@@ -1,35 +1,28 @@
-import { z, ZodError } from 'zod';
-import { AppError } from '../../lib/errors';
+import { z } from 'zod';
 
-export function parseOrThrow<O>(schema: z.ZodSchema<O>, input: unknown): O {
-  try {
-    return schema.parse(input);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      const issue = error.issues[0];
-      const path = issue ? issue.path.join('.') : '';
-      throw new AppError(
-        'VALIDATION_ERROR',
-        issue ? `${path}: ${issue.message}` : 'Invalid input.',
-      );
-    }
-    throw error;
-  }
-}
+/** Schema for creating an order */
+export const CreateOrderSchema = z.object({
+  customerId: z.string().uuid(),
+  items: z.array(
+    z.object({
+      productVariantId: z.string().uuid(),
+      quantity: z.number().int().positive(),
+    }),
+  ).min(1),
+});
 
-export const createOrderSchema = z
-  .object({
-    customerId: z.string().min(1, 'customerId is required'),
-    items: z
-      .array(
-        z
-          .object({
-            variantId: z.string().min(1, 'variantId is required'),
-            quantity: z.number().int().positive('quantity must be positive'),
-          })
-          .strict(),
-      )
-      .min(1, 'At least one item is required'),
-    deliveryZoneId: z.string().min(1).optional(),
-  })
-  .strict();
+/** Schema for updating order status */
+export const UpdateStatusSchema = z.object({
+  status: z.enum([
+    'DRAFT',
+    'AWAITING_PAYMENT',
+    'PAID',
+    'PROCESSING',
+    'READY_FOR_DELIVERY',
+    'SHIPPED',
+    'DELIVERED',
+    'CANCELLED',
+    'FAILED',
+    'REFUNDED',
+  ]),
+});

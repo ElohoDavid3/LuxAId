@@ -1,0 +1,127 @@
+/* DashboardWidget — stat card with optional trend, icon, caption, highlight */
+
+.widget {
+  background: var(--color-surface-container);
+  border-radius: 12px;
+  padding: 1.25rem;
+  border: 1px solid var(--color-outline-variant);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.widget:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Highlighted / attention widget */
+.widget.highlight {
+  border-color: var(--color-primary-container);
+  background: var(--color-primary-container);
+}
+
+/* ── Icon row ────────────────────────────────────────────────────── */
+.iconRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: var(--color-surface-container-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-on-surface-variant);
+}
+
+.widget.highlight .icon {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+/* ── Title ───────────────────────────────────────────────────────── */
+.title {
+  margin: 0;
+  font-family: var(--type-dr-title-large-font-family);
+  font-size: var(--type-dr-label-large-font-size);
+  font-weight: var(--type-dr-title-large-font-weight);
+  color: var(--color-on-surface-variant);
+  letter-spacing: 0;
+}
+
+.widget.highlight .title {
+  color: var(--color-on-primary-container);
+}
+
+/* ── Value ───────────────────────────────────────────────────────── */
+.value {
+  font-family: var(--type-dr-headline-large-font-family);
+  font-size: var(--type-dr-headline-large-font-size);
+  font-weight: 700;
+  letter-spacing: var(--type-dr-headline-large-letter-spacing);
+  color: var(--color-on-surface);
+  line-height: 1.1;
+}
+
+.widget.highlight .value {
+  color: var(--color-on-primary-container);
+}
+
+/* ── Caption ─────────────────────────────────────────────────────── */
+.caption {
+  font-family: var(--type-dr-body-small-font-family);
+  font-size: var(--type-dr-body-small-font-size);
+  color: var(--color-on-surface-variant);
+  line-height: 1.4;
+}
+
+.widget.highlight .caption {
+  color: var(--color-on-primary-container);
+  opacity: 0.8;
+}
+
+/* ── Trend ───────────────────────────────────────────────────────── */
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--type-dr-label-medium-font-size);
+  font-family: var(--type-dr-label-medium-font-family);
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0.15rem 0.45rem;
+}
+
+.trendUp {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
+.trendDown {
+  background-color: var(--color-error-container);
+  color: var(--color-on-error-container);
+}
+
+.trendNeutral {
+  background-color: var(--color-surface-variant);
+  color: var(--color-on-surface-variant);
+}
+
+/* ── Pulse animation for attention state ─────────────────────────── */
+@keyframes widgetPulse {
+  0%   { box-shadow: 0 0 0 0 var(--color-primary-container); }
+  60%  { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.pulse {
+  animation: widgetPulse 2s ease-out infinite;
+}

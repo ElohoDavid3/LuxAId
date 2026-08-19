@@ -6,6 +6,18 @@ import { env } from './env';
 import { logger } from './logger';
 import { authorizeCredentials } from '../features/auth/credentials';
 
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      businessId?: string;
+      businessName?: string;
+    };
+  }
+}
+
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -13,7 +25,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: env.NEXTAUTH_SECRET,
   trustHost: true,
   session: {
-    strategy: 'database',
+    strategy: 'jwt',
     maxAge: SESSION_MAX_AGE_SECONDS,
   },
   pages: {
@@ -39,9 +51,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    session: ({ session, user }) => {
-      if (session.user && user && user.id) {
-        session.user.id = user.id;
+    jwt: async ({ token, user }) => {
+      if (user) {
+        token.id = user.id;
+        const membership = await prisma.businessMembership.findFirst({
+          where: { userId: user.id, status: 'ACTIVE' },
+          select: { businessId: true, business: { select: { name: true } } },
+        });
+        if (membership) {
+          token.businessId = membership.businessId;
+          token.businessName = membership.business.name;
+        }
+      }
+      return token;
+    },
+    session: async ({ session, token }) => {
+      if (session.user && token) {
+        session.user.id = token.id as string;
+        session.user.businessId = token.businessId as string | undefined;
+        session.user.businessName = token.businessName as string | undefined;
       }
       return session;
     },

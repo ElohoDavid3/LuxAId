@@ -1,0 +1,42 @@
+/* Auth layout: centers the auth card on a soft background */
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-surface-container-low);
+  padding: 1.5rem;
+}
+
+.brandmark {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.brandmark svg {
+  width: 36px;
+  height: 36px;
+  color: var(--color-primary);
+}
+
+.brandName {
+  font-family: var(--type-dr-headline-small-font-family);
+  font-size: var(--type-dr-headline-small-font-size);
+  font-weight: 700;
+  letter-spacing: -1px;
+  color: var(--color-primary);
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  background-color: var(--color-surface-container-lowest);
+  border-radius: 16px;
+  border: 1px solid var(--color-outline-variant);
+  padding: 2.5rem 2rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}

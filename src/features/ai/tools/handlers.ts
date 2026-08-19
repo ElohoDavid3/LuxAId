@@ -161,13 +161,18 @@ async function handleCreateOrder(
   args: Record<string, unknown>,
   ctx: ToolHandlerContext,
 ): Promise<string> {
+  const rawItems = (args.items as Array<{ variantId?: string; productVariantId?: string; quantity: number }>) || [];
+  const items = rawItems.map((i) => ({
+    productVariantId: i.productVariantId || i.variantId || '',
+    quantity: i.quantity,
+  }));
+
   const order = await orderService.createOrder(
     ctx.systemUserId,
     ctx.businessId,
     {
       customerId: args.customerId as string,
-      items: args.items as Array<{ variantId: string; quantity: number }>,
-      deliveryZoneId: args.deliveryZoneId as string | undefined,
+      items,
     },
   );
 
@@ -175,7 +180,7 @@ async function handleCreateOrder(
     id: order.id,
     status: order.status,
     totalAmount: order.totalAmount,
-    items: order.items.map((i) => ({
+    items: order.items.map((i: { product: { name: string }; productVariant?: { name: string } | null; quantity: number; unitPrice: number }) => ({
       productName: i.product.name,
       variantName: i.productVariant?.name,
       quantity: i.quantity,
@@ -188,7 +193,7 @@ async function handleInitiatePayment(
   args: Record<string, unknown>,
   ctx: ToolHandlerContext,
 ): Promise<string> {
-  const attempt = await paymentService.initiatePayment(
+  const { attempt, paymentLink } = await paymentService.initiatePayment(
     ctx.systemUserId,
     ctx.businessId,
     args.orderId as string,
@@ -200,6 +205,7 @@ async function handleInitiatePayment(
     transactionReference: attempt.transactionReference,
     amount: attempt.amount,
     currency: attempt.currency,
+    paymentLink,
   });
 }
 
@@ -217,12 +223,12 @@ async function handleGetOrder(
     id: order.id,
     status: order.status,
     totalAmount: order.totalAmount,
-    items: order.items.map((i) => ({
+    items: order.items.map((i: { product: { name: string }; quantity: number; unitPrice: number }) => ({
       productName: i.product.name,
       quantity: i.quantity,
       unitPrice: i.unitPrice,
     })),
-    paymentAttempts: order.paymentAttempts.map((pa) => ({
+    paymentAttempts: order.paymentAttempts.map((pa: { status: string; amount: number }) => ({
       status: pa.status,
       amount: pa.amount,
     })),
