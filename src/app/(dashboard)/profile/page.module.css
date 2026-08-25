@@ -1,0 +1,35 @@
+/* Profile page styles */
+
+.sectionTitle {
+  font-family: var(--type-dr-title-medium-font-family);
+  font-size: var(--type-dr-title-medium-font-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+  margin: 0 0 1rem;
+}
+
+.prefRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.prefRow > div:first-child {
+  min-width: 0;
+}
+
+.prefName {
+  font-family: var(--type-dr-title-small-font-family);
+  font-size: var(--type-dr-title-small-font-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+  margin-bottom: 0.125rem;
+}
+
+.prefDesc {
+  font-size: var(--type-dr-body-small-font-size);
+  color: var(--color-on-surface-variant);
+  line-height: 1.4;
+  margin: 0;
+}

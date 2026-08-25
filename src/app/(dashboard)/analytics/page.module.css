@@ -1,0 +1,92 @@
+/* Analytics page styles */
+
+/* ── Stats grid ──────────────────────────────────────────────────── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+/* ── Two-col section ─────────────────────────────────────────────── */
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Data table ──────────────────────────────────────────────────── */
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-dr-body-small-font-size);
+}
+
+.dataTable thead tr {
+  border-bottom: 1px solid var(--color-outline-variant);
+  background: var(--color-surface-container-low);
+}
+
+.dataTable th {
+  padding: 0.625rem 1.25rem;
+  text-align: left;
+  color: var(--color-on-surface-variant);
+  font-family: var(--type-dr-label-medium-font-family);
+  font-size: var(--type-dr-label-medium-font-size);
+  white-space: nowrap;
+}
+
+.dataTable td {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--color-outline-variant);
+  color: var(--color-on-surface);
+}
+
+.dataTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Metric list (conversation card) ─────────────────────────────── */
+.metricList {
+  display: flex;
+  flex-direction: column;
+}
+
+.metricRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.metricRow:last-child {
+  border-bottom: none;
+}
+
+.metricLabel {
+  font-family: var(--type-dr-body-medium-font-family);
+  font-size: var(--type-dr-body-medium-font-size);
+  color: var(--color-on-surface-variant);
+}
+
+.metricValue {
+  font-family: var(--type-dr-title-medium-font-family);
+  font-size: var(--type-dr-title-medium-font-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+/* ── Page wrapper ────────────────────────────────────────────────── */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}

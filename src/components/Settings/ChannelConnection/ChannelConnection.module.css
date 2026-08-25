@@ -1,0 +1,133 @@
+/* Channel connection block styles */
+
+.block {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.rowIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background-color: var(--color-surface-container-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-family: var(--type-dr-title-small-font-family);
+  font-size: var(--type-dr-title-small-font-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+  margin-bottom: 0.125rem;
+}
+
+.desc {
+  font-size: var(--type-dr-body-small-font-size);
+  color: var(--color-on-surface-variant);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.number {
+  font-family: var(--type-dr-label-medium-font-family);
+  font-size: var(--type-dr-label-medium-font-size);
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0.25rem 0 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-shrink: 0;
+}
+
+.connectedBadge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  white-space: nowrap;
+}
+
+/* ── Connect form ──────────────────────────────────────────────── */
+.form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--color-outline-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.label {
+  font-family: var(--type-dr-label-large-font-family);
+  font-size: var(--type-dr-label-large-font-size);
+  font-weight: var(--type-dr-label-large-font-weight);
+  color: var(--color-on-surface-variant);
+}
+
+.input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--color-outline-variant);
+  background-color: var(--color-surface-container-low);
+  color: var(--color-on-surface);
+  font-size: var(--type-dr-body-medium-font-size);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-container);
+}
+
+.input::placeholder {
+  color: var(--color-outline);
+}
+
+.hint {
+  font-family: var(--type-dr-body-small-font-family);
+  font-size: var(--type-dr-body-small-font-size);
+  color: var(--color-on-surface-variant);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.625rem;
+}
+
+.errorBox {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background-color: var(--color-error-container);
+  color: var(--color-on-error-container);
+  font-size: var(--type-dr-body-medium-font-size);
+}

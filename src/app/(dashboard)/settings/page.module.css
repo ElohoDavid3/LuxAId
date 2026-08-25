@@ -1,0 +1,186 @@
+/* Settings page styles */
+
+.sectionTitle {
+  font-family: var(--type-dr-title-medium-font-family);
+  font-size: var(--type-dr-title-medium-font-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+  margin: 0 0 1rem;
+}
+
+.sectionBody {
+  color: var(--color-on-surface-variant);
+  font-size: var(--type-dr-body-medium-font-size);
+  margin: 0 0 1rem;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 600px) {
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.label {
+  display: block;
+  font-family: var(--type-dr-label-medium-font-family);
+  font-size: var(--type-dr-label-medium-font-size);
+  color: var(--color-on-surface-variant);
+  margin-bottom: 0.25rem;
+}
+
+.readOnly {
+  padding: 0.625rem 0.875rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-outline-variant);
+  background-color: var(--color-surface-container-low);
+  font-size: var(--type-dr-body-medium-font-size);
+  color: var(--color-on-surface);
+}
+
+/* ── Generic feature row (integrations, payment, delivery, AI, security) ── */
+.rowList {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.row:first-child {
+  padding-top: 0;
+}
+
+.rowIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background-color: var(--color-surface-container-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.rowInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowName {
+  font-family: var(--type-dr-title-small-font-family);
+  font-size: var(--type-dr-title-small-font-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+  margin-bottom: 0.125rem;
+}
+
+.rowDesc {
+  font-size: var(--type-dr-body-small-font-size);
+  color: var(--color-on-surface-variant);
+  line-height: 1.4;
+}
+
+/* ── Badges ────────────────────────────────────────────────────── */
+.connectedBadge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.notConnected {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.soonBadge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  background-color: var(--color-surface-container-high);
+  color: var(--color-on-surface-variant);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Team members ──────────────────────────────────────────────── */
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.memberRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.memberAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--color-secondary-container);
+  color: var(--color-on-secondary-container);
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.memberInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.memberName {
+  font-family: var(--type-dr-title-small-font-family);
+  font-size: var(--type-dr-title-small-font-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.memberEmail {
+  font-size: var(--type-dr-body-small-font-size);
+  color: var(--color-on-surface-variant);
+}
+
+.roleBadge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  background-color: var(--color-surface-container-high);
+  color: var(--color-on-surface-variant);
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-transform: capitalize;
+}

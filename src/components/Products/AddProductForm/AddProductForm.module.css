@@ -1,0 +1,89 @@
+/* Add product form styles */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.fieldGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.label {
+  font-family: var(--type-dr-label-large-font-family);
+  font-size: var(--type-dr-label-large-font-size);
+  font-weight: var(--type-dr-label-large-font-weight);
+  letter-spacing: var(--type-dr-label-large-letter-spacing);
+  color: var(--color-on-surface-variant);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--color-outline-variant);
+  background-color: var(--color-surface-container-low);
+  color: var(--color-on-surface);
+  font-size: var(--type-dr-body-medium-font-size);
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-container);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--color-outline);
+}
+
+.input:disabled,
+.textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hint {
+  font-family: var(--type-dr-body-small-font-family);
+  font-size: var(--type-dr-body-small-font-size);
+  color: var(--color-on-surface-variant);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.note {
+  font-family: var(--type-dr-body-small-font-family);
+  font-size: var(--type-dr-body-small-font-size);
+  color: var(--color-on-surface-variant);
+}
+
+.errorBox {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background-color: var(--color-error-container);
+  color: var(--color-on-error-container);
+  font-size: var(--type-dr-body-medium-font-size);
+  font-family: var(--type-dr-body-medium-font-family);
+}
