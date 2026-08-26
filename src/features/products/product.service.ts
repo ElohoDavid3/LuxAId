@@ -12,8 +12,10 @@ import {
 } from './validation';
 import { assertProductStatusTransition } from './product-status';
 import { duplicateSkuError, isUniqueConstraintViolation } from './errors';
+import { generateSku } from './sku';
 
 const PRODUCTS_SCOPE = 'products_inventory' as const;
+const MAX_AUTO_SKU_ATTEMPTS = 5;
 
 async function resolveMembership(userId: string, requestedBusinessId: string) {
   return requireScope(userId, requestedBusinessId, PRODUCTS_SCOPE);
@@ -37,39 +39,52 @@ export async function createProduct(
 ): Promise<ProductWithVariants> {
   const membership = await resolveMembership(userId, requestedBusinessId);
   const data = parseOrThrow(createProductSchema, input);
-  try {
-    return await prisma.$transaction(async (tx) => {
-      return tx.product.create({
-        data: {
-          businessId: membership.businessId,
-          name: data.name,
-          description: data.description,
-          price: data.price,
-          status: data.status ?? ProductStatus.DRAFT,
-          variants: {
-            create: {
-              businessId: membership.businessId,
-              name: data.variant.name ?? data.name,
-              sku: data.variant.sku,
-              attributes: (data.variant.attributes ??
-                {}) as Prisma.InputJsonValue,
-              inventory: {
-                create: {
-                  businessId: membership.businessId,
-                  available: 0,
-                  reserved: 0,
+  const variantInput = data.variant ?? {};
+  const userSku = variantInput.sku;
+  const maxAttempts = userSku ? 1 : MAX_AUTO_SKU_ATTEMPTS;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const sku = userSku ?? generateSku(data.name);
+    try {
+      return await prisma.$transaction(async (tx) => {
+        return tx.product.create({
+          data: {
+            businessId: membership.businessId,
+            name: data.name,
+            description: data.description,
+            imageUrl: data.imageUrl ?? null,
+            category: data.category ?? null,
+            price: data.price,
+            status: data.status ?? ProductStatus.DRAFT,
+            variants: {
+              create: {
+                businessId: membership.businessId,
+                name: variantInput.name ?? data.name,
+                sku,
+                attributes: (variantInput.attributes ??
+                  {}) as Prisma.InputJsonValue,
+                inventory: {
+                  create: {
+                    businessId: membership.businessId,
+                    available: 0,
+                    reserved: 0,
+                  },
                 },
               },
             },
           },
-        },
-        include: productInclude,
+          include: productInclude,
+        });
       });
-    });
-  } catch (error) {
-    if (isUniqueConstraintViolation(error)) throw duplicateSkuError();
-    throw error;
+    } catch (error) {
+      if (!isUniqueConstraintViolation(error)) throw error;
+      if (userSku) throw duplicateSkuError();
+    }
   }
+  throw new AppError(
+    'INTERNAL_ERROR',
+    'Could not generate a unique SKU. Please try again.',
+  );
 }
 
 export async function getProduct(
@@ -132,6 +147,8 @@ export async function updateProduct(
       ...(data.description !== undefined
         ? { description: data.description }
         : {}),
+      ...(data.imageUrl !== undefined ? { imageUrl: data.imageUrl } : {}),
+      ...(data.category !== undefined ? { category: data.category } : {}),
       ...(data.price !== undefined ? { price: data.price } : {}),
     },
     include: productInclude,

@@ -1,3 +1,7 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
+import { ThemeToggle } from '@/components/ThemeToggle/ThemeToggle';
 import styles from './Topbar.module.css';
 
 type BreadcrumbItem = {
@@ -5,13 +9,48 @@ type BreadcrumbItem = {
   href?: string;
 };
 
-type TopbarProps = {
+type RouteConfig = {
   title: string;
-  breadcrumbs?: BreadcrumbItem[];
-  hasNotifications?: boolean;
+  detailTitle?: string;
 };
 
-export function Topbar({ title, breadcrumbs, hasNotifications }: TopbarProps) {
+const ROUTES: Record<string, RouteConfig> = {
+  '/': { title: 'Dashboard' },
+  '/orders': { title: 'Orders', detailTitle: 'Order details' },
+  '/customers': { title: 'Customers' },
+  '/products': { title: 'Products' },
+  '/analytics': { title: 'Analytics' },
+  '/settings': { title: 'Settings' },
+  '/profile': { title: 'Profile' },
+  '/conversations': { title: 'Conversations', detailTitle: 'Conversation' },
+};
+
+function resolveRoute(pathname: string): {
+  title: string;
+  breadcrumbs?: BreadcrumbItem[];
+} {
+  const segments = pathname.split('/').filter(Boolean);
+  const base = segments.length > 0 ? `/${segments[0]}` : '/';
+  const config = ROUTES[base] ?? { title: 'Dashboard' };
+
+  if (segments.length > 1) {
+    return {
+      title: config.detailTitle ?? config.title,
+      breadcrumbs: [{ label: config.title, href: base }],
+    };
+  }
+
+  return { title: config.title };
+}
+
+export function Topbar({
+  hasNotifications = false,
+}: {
+  hasNotifications?: boolean;
+}) {
+  const pathname = usePathname();
+  const { title, breadcrumbs } = resolveRoute(pathname);
+
   return (
     <header className={styles.topbar}>
       <div className={styles.left}>
@@ -33,12 +72,12 @@ export function Topbar({ title, breadcrumbs, hasNotifications }: TopbarProps) {
       </div>
 
       <div className={styles.right}>
+        <ThemeToggle />
         <button
+          type="button"
           id="notification-btn"
           className={styles.notifBtn}
-          aria-label={
-            hasNotifications ? 'Notifications (new)' : 'Notifications'
-          }
+          aria-label={hasNotifications ? 'Notifications (new)' : 'Notifications'}
         >
           <svg
             viewBox="0 0 20 20"

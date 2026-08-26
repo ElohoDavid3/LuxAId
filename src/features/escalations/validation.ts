@@ -28,3 +28,11 @@ export const assignEscalationSchema = z
     assigneeId: z.string().trim().min(1, 'assigneeId is required'),
   })
   .strict();
+
+export const cancelEscalationSchema = z
+  .object({
+    reason: z.string().trim().min(1, 'reason is required').optional(),
+  })
+  .strict();
+
+export const reassignEscalationSchema = z.object({}).strict();

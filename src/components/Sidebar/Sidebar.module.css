@@ -11,8 +11,10 @@
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  padding: 1.25rem 1rem 1rem;
-  border-bottom: 1px solid var(--color-outline-variant);
+  /* Matches the Topbar height so the brand and page title
+     sit on the same horizontal line */
+  min-height: 64px;
+  padding: 0 1rem;
 }
 
 .brandIcon {
@@ -33,7 +35,6 @@
 /* ── Business context ───────────────────────────────────────────── */
 .businessCtx {
   padding: 0.875rem 1rem;
-  border-bottom: 1px solid var(--color-outline-variant);
 }
 
 .businessLabel {
@@ -135,39 +136,28 @@
 
 /* ── Footer ─────────────────────────────────────────────────────── */
 .footer {
+  margin-top: auto;
   padding: 0.75rem 0.5rem;
-  border-top: 1px solid var(--color-outline-variant);
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
 }
 
-.themeToggle {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.625rem 0.75rem;
-  border-radius: 8px;
-  font-family: var(--type-dr-title-small-font-family);
-  font-size: var(--type-dr-title-small-font-size);
-  font-weight: 500;
-  color: var(--color-on-surface-variant);
-  cursor: pointer;
-  width: 100%;
-  transition: background-color 0.15s ease;
-}
-
-.themeToggle:hover {
-  background-color: var(--color-surface-container);
-  color: var(--color-on-surface);
-}
-
-.userRow {
+.avatarButton {
   display: flex;
   align-items: center;
   gap: 0.625rem;
   padding: 0.625rem 0.75rem;
   border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.15s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.avatarButton:hover {
+  background-color: var(--color-surface-container);
 }
 
 .avatar {
@@ -205,4 +195,52 @@
 
 .signOutBtn:hover {
   color: var(--color-error);
+}
+
+.signOutBtnRow {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-family: var(--type-dr-title-small-font-family);
+  font-size: var(--type-dr-title-small-font-size);
+  font-weight: 500;
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  margin-top: 0.125rem;
+}
+
+.signOutBtnRow:hover {
+  background-color: var(--color-error-container);
+  color: var(--color-on-error-container);
+}
+
+.settingsBtnRow {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-family: var(--type-dr-title-small-font-family);
+  font-size: var(--type-dr-title-small-font-size);
+  font-weight: 500;
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+}
+
+.settingsBtnRow:hover {
+  background-color: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+.settingsBtnRowActive {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  font-weight: 600;
 }

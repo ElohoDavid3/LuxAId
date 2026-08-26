@@ -13,7 +13,9 @@ import {
 } from './helpers';
 import {
   assignEscalation,
+  cancelEscalation,
   createEscalation,
+  reassignEscalation,
   resolveEscalation,
 } from '../src/features/escalations/escalation.service';
 import { createCustomer } from '../src/features/customers/customer.service';
@@ -740,6 +742,348 @@ describe('Escalation service', () => {
       await expect(
         resolveEscalation(user.id, otherBiz.id, 'x'),
       ).rejects.toBeInstanceOf(AppError);
+    });
+  });
+
+  describe('cancelEscalation', () => {
+    it('cancels an OPEN escalation', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-cancel@test.com',
+      );
+      const conversation = await createConversationForTest(user, business);
+      const escalation = await createEscalation(
+        user.id,
+        business.id,
+        conversation.id,
+        { reason: 'Cancel test' },
+      );
+      const result = await cancelEscalation(
+        user.id,
+        business.id,
+        escalation.id,
+        {},
+      );
+      expect(result.status).toBe(EscalationStatus.CANCELLED);
+      expect(result.resolvedAt).toBeInstanceOf(Date);
+    });
+
+    it('returns not-found for nonexistent escalation', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-cancelnosuch@test.com',
+      );
+      await expect(
+        cancelEscalation(user.id, business.id, 'nonexistent-id', {}),
+      ).rejects.toMatchObject({ code: 'UNKNOWN_ESCALATION' });
+    });
+
+    it('returns not-found for cross-business escalation', async () => {
+      const ownerA = await createUserInBusiness('owner-esc-cancelxa@test.com');
+      const ownerB = await createUserInBusiness('owner-esc-cancelxb@test.com');
+      const customerA = await createCustomer(
+        ownerA.user.id,
+        ownerA.business.id,
+        { name: 'Customer A' },
+      );
+      const conversationA = await createConversation(
+        ownerA.user.id,
+        ownerA.business.id,
+        { customerId: customerA.id },
+      );
+      const escalation = await createEscalation(
+        ownerA.user.id,
+        ownerA.business.id,
+        conversationA.id,
+        { reason: 'A only' },
+      );
+      await expect(
+        cancelEscalation(ownerB.user.id, ownerB.business.id, escalation.id, {}),
+      ).rejects.toMatchObject({ code: 'UNKNOWN_ESCALATION' });
+    });
+
+    it('rejects cancellation of ASSIGNED escalation', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-cancelassigned@test.com',
+      );
+      const conversation = await createConversationForTest(user, business);
+      const escalation = await createEscalation(
+        user.id,
+        business.id,
+        conversation.id,
+        { reason: 'Already assigned' },
+      );
+      await assignEscalation(user.id, business.id, escalation.id, {
+        assigneeId: user.id,
+      });
+      await expect(
+        cancelEscalation(user.id, business.id, escalation.id, {}),
+      ).rejects.toMatchObject({ code: 'STATE_CONFLICT' });
+    });
+
+    it('rejects cancellation of RESOLVED escalation', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-cancelresolved@test.com',
+      );
+      const conversation = await createConversationForTest(user, business);
+      const escalation = await createEscalation(
+        user.id,
+        business.id,
+        conversation.id,
+        { reason: 'Already resolved' },
+      );
+      await assignEscalation(user.id, business.id, escalation.id, {
+        assigneeId: user.id,
+      });
+      await resolveEscalation(user.id, business.id, escalation.id);
+      await expect(
+        cancelEscalation(user.id, business.id, escalation.id, {}),
+      ).rejects.toMatchObject({ code: 'STATE_CONFLICT' });
+    });
+
+    it('writes an audit record for cancellation', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-cancelaudit@test.com',
+      );
+      const conversation = await createConversationForTest(user, business);
+      const escalation = await createEscalation(
+        user.id,
+        business.id,
+        conversation.id,
+        { reason: 'Cancel audit' },
+      );
+      await cancelEscalation(user.id, business.id, escalation.id, {});
+      const audit = await prisma.auditLog.findFirst({
+        where: {
+          businessId: business.id,
+          eventType: 'ESCALATION_CANCELLED',
+          actorId: user.id,
+        },
+      });
+      expect(audit).toBeTruthy();
+      expect(audit!.payload).toMatchObject({
+        escalationId: escalation.id,
+      });
+    });
+
+    it('rejects inactive membership', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-cancelinactive@test.com',
+        MembershipRole.OWNER,
+        MembershipStatus.INACTIVE,
+      );
+      await expect(
+        cancelEscalation(user.id, business.id, 'x', {}),
+      ).rejects.toBeInstanceOf(AppError);
+    });
+
+    it('rejects unauthorized role (STAFF)', async () => {
+      const { user, business } = await createUserInBusiness(
+        'staff-esc-cancel@test.com',
+        MembershipRole.STAFF,
+      );
+      await expect(
+        cancelEscalation(user.id, business.id, 'x', {}),
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    });
+
+    it('allows re-escalation after cancellation', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-cancelreopen@test.com',
+      );
+      const conversation = await createConversationForTest(user, business);
+      const first = await createEscalation(
+        user.id,
+        business.id,
+        conversation.id,
+        { reason: 'First' },
+      );
+      await cancelEscalation(user.id, business.id, first.id, {});
+      const second = await createEscalation(
+        user.id,
+        business.id,
+        conversation.id,
+        { reason: 'Second' },
+      );
+      expect(second.id).not.toBe(first.id);
+      expect(second.status).toBe(EscalationStatus.OPEN);
+    });
+  });
+
+  describe('reassignEscalation', () => {
+    it('reassigns an ASSIGNED escalation back to OPEN', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-reassign@test.com',
+      );
+      const conversation = await createConversationForTest(user, business);
+      const escalation = await createEscalation(
+        user.id,
+        business.id,
+        conversation.id,
+        { reason: 'Reassign test' },
+      );
+      await assignEscalation(user.id, business.id, escalation.id, {
+        assigneeId: user.id,
+      });
+      const result = await reassignEscalation(
+        user.id,
+        business.id,
+        escalation.id,
+      );
+      expect(result.status).toBe(EscalationStatus.OPEN);
+      expect(result.assigneeId).toBeNull();
+    });
+
+    it('returns not-found for nonexistent escalation', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-reassignnosuch@test.com',
+      );
+      await expect(
+        reassignEscalation(user.id, business.id, 'nonexistent-id'),
+      ).rejects.toMatchObject({ code: 'UNKNOWN_ESCALATION' });
+    });
+
+    it('returns not-found for cross-business escalation', async () => {
+      const ownerA = await createUserInBusiness('owner-esc-reassignxa@test.com');
+      const ownerB = await createUserInBusiness('owner-esc-reassignxb@test.com');
+      const customerA = await createCustomer(
+        ownerA.user.id,
+        ownerA.business.id,
+        { name: 'Customer A' },
+      );
+      const conversationA = await createConversation(
+        ownerA.user.id,
+        ownerA.business.id,
+        { customerId: customerA.id },
+      );
+      const escalation = await createEscalation(
+        ownerA.user.id,
+        ownerA.business.id,
+        conversationA.id,
+        { reason: 'A only' },
+      );
+      await assignEscalation(ownerA.user.id, ownerA.business.id, escalation.id, {
+        assigneeId: ownerA.user.id,
+      });
+      await expect(
+        reassignEscalation(ownerB.user.id, ownerB.business.id, escalation.id),
+      ).rejects.toMatchObject({ code: 'UNKNOWN_ESCALATION' });
+    });
+
+    it('rejects reassignment of OPEN escalation', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-reassignopen@test.com',
+      );
+      const conversation = await createConversationForTest(user, business);
+      const escalation = await createEscalation(
+        user.id,
+        business.id,
+        conversation.id,
+        { reason: 'Still open' },
+      );
+      await expect(
+        reassignEscalation(user.id, business.id, escalation.id),
+      ).rejects.toMatchObject({ code: 'STATE_CONFLICT' });
+    });
+
+    it('rejects reassignment of RESOLVED escalation', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-reassignresolved@test.com',
+      );
+      const conversation = await createConversationForTest(user, business);
+      const escalation = await createEscalation(
+        user.id,
+        business.id,
+        conversation.id,
+        { reason: 'Already resolved' },
+      );
+      await assignEscalation(user.id, business.id, escalation.id, {
+        assigneeId: user.id,
+      });
+      await resolveEscalation(user.id, business.id, escalation.id);
+      await expect(
+        reassignEscalation(user.id, business.id, escalation.id),
+      ).rejects.toMatchObject({ code: 'STATE_CONFLICT' });
+    });
+
+    it('writes an audit record for reassignment', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-reassignaudit@test.com',
+      );
+      const conversation = await createConversationForTest(user, business);
+      const escalation = await createEscalation(
+        user.id,
+        business.id,
+        conversation.id,
+        { reason: 'Reassign audit' },
+      );
+      await assignEscalation(user.id, business.id, escalation.id, {
+        assigneeId: user.id,
+      });
+      await reassignEscalation(user.id, business.id, escalation.id);
+      const audit = await prisma.auditLog.findFirst({
+        where: {
+          businessId: business.id,
+          eventType: 'ESCALATION_REASSIGNED',
+          actorId: user.id,
+        },
+      });
+      expect(audit).toBeTruthy();
+      expect(audit!.payload).toMatchObject({
+        escalationId: escalation.id,
+      });
+    });
+
+    it('rejects inactive membership', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-reassigninactive@test.com',
+        MembershipRole.OWNER,
+        MembershipStatus.INACTIVE,
+      );
+      await expect(
+        reassignEscalation(user.id, business.id, 'x'),
+      ).rejects.toBeInstanceOf(AppError);
+    });
+
+    it('rejects unauthorized role (STAFF)', async () => {
+      const { user, business } = await createUserInBusiness(
+        'staff-esc-reassign@test.com',
+        MembershipRole.STAFF,
+      );
+      await expect(
+        reassignEscalation(user.id, business.id, 'x'),
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    });
+
+    it('allows re-escalation and reassignment after prior resolution', async () => {
+      const { user, business } = await createUserInBusiness(
+        'owner-esc-reassignreopen@test.com',
+      );
+      const conversation = await createConversationForTest(user, business);
+      const first = await createEscalation(
+        user.id,
+        business.id,
+        conversation.id,
+        { reason: 'First cycle' },
+      );
+      await assignEscalation(user.id, business.id, first.id, {
+        assigneeId: user.id,
+      });
+      await resolveEscalation(user.id, business.id, first.id);
+      const second = await createEscalation(
+        user.id,
+        business.id,
+        conversation.id,
+        { reason: 'Second cycle' },
+      );
+      await assignEscalation(user.id, business.id, second.id, {
+        assigneeId: user.id,
+      });
+      const reassigned = await reassignEscalation(
+        user.id,
+        business.id,
+        second.id,
+      );
+      expect(reassigned.status).toBe(EscalationStatus.OPEN);
+      expect(reassigned.assigneeId).toBeNull();
     });
   });
 });

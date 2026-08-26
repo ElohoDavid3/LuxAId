@@ -143,8 +143,22 @@ export async function applyVerifiedPayment(
   input: ApplyVerifiedPaymentInput,
 ): Promise<ApplyPaymentOutcome> {
   return await prisma.$transaction(async (tx) => {
+    // Lock the row to prevent concurrent webhook delivery from applying twice.
+    // Without FOR UPDATE, two concurrent transactions can both read PENDING and
+    // both proceed to update, resulting in a double-application race.
+    const [lockedAttempt] = await tx.$queryRaw<
+      { id: string }[]
+    >`SELECT id FROM "PaymentAttempt" WHERE "transactionReference" = ${input.transactionReference} FOR UPDATE`;
+
+    if (!lockedAttempt) {
+      logger.warn('payment.apply.unknown_reference', {
+        transactionReference: input.transactionReference,
+      });
+      return { outcome: 'UNKNOWN_REFERENCE' };
+    }
+
     const attempt = await tx.paymentAttempt.findUnique({
-      where: { transactionReference: input.transactionReference },
+      where: { id: lockedAttempt.id },
       include: { order: true },
     });
 

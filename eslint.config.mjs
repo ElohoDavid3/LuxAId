@@ -1,6 +1,6 @@
-const { FlatCompat } = require('@eslint/eslintrc');
+import { FlatCompat } from '@eslint/eslintrc';
 
-const compat = new FlatCompat({ baseDirectory: __dirname });
+const compat = new FlatCompat({ baseDirectory: import.meta.dirname });
 
 /** @type {import('eslint').Linter.Config[]} */
 const eslintConfig = [
@@ -20,4 +20,4 @@ const eslintConfig = [
   },
 ];
 
-module.exports = eslintConfig;
+export default eslintConfig;

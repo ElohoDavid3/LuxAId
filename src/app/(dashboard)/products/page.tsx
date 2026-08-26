@@ -1,15 +1,19 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { requireDashboardSession } from '@/lib/session';
-import { Topbar } from '@/components/Topbar/Topbar';
 import { Card } from '@/components/Card/Card';
-import { StatusBadge } from '@/components/StatusBadge/StatusBadge';
-import { Button } from '@/components/Button/Button';
+import buttonStyles from '@/components/Button/Button.module.css';
 import { EmptyState } from '@/components/EmptyState/EmptyState';
+import {
+  ProductGrid,
+  type EditableProduct,
+} from '@/components/Products/ProductGrid/ProductGrid';
+import type { ProductTag } from '@/components/ProductCard/ProductCard';
 
 export const metadata: Metadata = { title: 'Products' };
 
-async function getProducts(businessId: string) {
+async function getProducts(businessId: string): Promise<EditableProduct[]> {
   const products = await prisma.product.findMany({
     where: { businessId },
     orderBy: { createdAt: 'desc' },
@@ -26,10 +30,14 @@ async function getProducts(businessId: string) {
     id: p.id,
     name: p.name,
     description: p.description,
+    imageUrl: p.imageUrl,
+    category: p.category,
     price: p.price,
-    status: p.status,
-    variantCount: p.variants.length,
-    totalStock: p.variants.reduce((sum, v) => sum + (v.inventory?.available ?? 0), 0),
+    priceLabel: formatNaira(p.price),
+    tags: stockTags(
+      p.variants.reduce((sum, v) => sum + (v.inventory?.available ?? 0), 0),
+      p.status,
+    ),
   }));
 }
 
@@ -37,10 +45,17 @@ function formatNaira(kobo: number) {
   return '\u20A6' + (kobo / 100).toLocaleString('en-NG', { minimumFractionDigits: 0 });
 }
 
-function stockStatus(total: number): string {
-  if (total === 0) return 'OUT_OF_STOCK';
-  if (total <= 5) return 'LOW_STOCK';
-  return 'active';
+function stockTags(totalStock: number, status: string): ProductTag[] {
+  if (status === 'DRAFT') {
+    return [{ label: 'Draft', tone: 'warning' }];
+  }
+  if (totalStock === 0) {
+    return [{ label: 'Out of stock', tone: 'error' }];
+  }
+  if (totalStock <= 5) {
+    return [{ label: `Low stock \u00B7 ${totalStock} left`, tone: 'info' }];
+  }
+  return [{ label: `${totalStock} in stock`, tone: 'success' }];
 }
 
 export default async function ProductsPage() {
@@ -49,12 +64,15 @@ export default async function ProductsPage() {
 
   return (
     <div>
-      <Topbar title="Products" />
       <div style={{ padding: '1.5rem 2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.25rem' }}>
-          <Button variant="primary" leftIcon={<span aria-hidden>+</span>} disabled>
+          <Link
+            href="/products/new"
+            className={[buttonStyles.btn, buttonStyles.primary].join(' ')}
+          >
+            <span aria-hidden>+</span>
             Add product
-          </Button>
+          </Link>
         </div>
 
         {products.length === 0 ? (
@@ -70,37 +88,7 @@ export default async function ProductsPage() {
             />
           </Card>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
-            {products.map((product) => {
-              const stock = stockStatus(product.totalStock);
-              return (
-                <Card key={product.id} shadow style={{ height: '100%', transition: 'transform 0.15s ease' }}>
-                  <Card.Header>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
-                      <Card.Title>{product.name}</Card.Title>
-                      <StatusBadge status={product.status} />
-                    </div>
-                  </Card.Header>
-                  <Card.Body>
-                    <p style={{ fontSize: 'var(--type-dr-body-small-font-size)', color: 'var(--color-on-surface-variant)', marginBottom: '0.75rem', lineHeight: 1.4 }}>
-                      {product.description || 'No description'}
-                    </p>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 700, fontSize: 'var(--type-dr-title-medium-font-size)', color: 'var(--color-primary)' }}>
-                        {formatNaira(product.price)}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <StatusBadge status={stock} />
-                        <span style={{ fontSize: 'var(--type-dr-body-small-font-size)', color: 'var(--color-on-surface-variant)' }}>
-                          {product.totalStock} in stock
-                        </span>
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              );
-            })}
-          </div>
+          <ProductGrid products={products} />
         )}
       </div>
     </div>

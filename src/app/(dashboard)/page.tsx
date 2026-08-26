@@ -2,7 +2,6 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { requireDashboardSession } from '@/lib/session';
-import { Topbar } from '@/components/Topbar/Topbar';
 import { DashboardWidget } from '@/components/DashboardWidget';
 import { Card } from '@/components/Card/Card';
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge';
@@ -143,8 +142,6 @@ export default async function DashboardPage() {
 
   return (
     <div className={styles.page}>
-      <Topbar title="Dashboard" />
-
       <div style={{ padding: '1.5rem 2rem' }}>
         {/* -- Attention strip -- */}
         {hasIssues ? (
@@ -249,26 +246,26 @@ export default async function DashboardPage() {
               />
             ) : (
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--type-dr-body-small-font-size)' }}>
+                <table className={styles.dataTable}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid var(--color-outline-variant)', background: 'var(--color-surface-container-low)' }}>
-                      <th style={{ padding: '0.625rem 1.25rem', textAlign: 'left', color: 'var(--color-on-surface-variant)', fontFamily: 'var(--type-dr-label-medium-font-family)', fontSize: 'var(--type-dr-label-medium-font-size)' }}>Order</th>
-                      <th style={{ padding: '0.625rem 1.25rem', textAlign: 'left', color: 'var(--color-on-surface-variant)', fontFamily: 'var(--type-dr-label-medium-font-family)', fontSize: 'var(--type-dr-label-medium-font-size)' }}>Customer</th>
-                      <th style={{ padding: '0.625rem 1.25rem', textAlign: 'left', color: 'var(--color-on-surface-variant)', fontFamily: 'var(--type-dr-label-medium-font-family)', fontSize: 'var(--type-dr-label-medium-font-size)' }}>Status</th>
-                      <th style={{ padding: '0.625rem 1.25rem', textAlign: 'right', color: 'var(--color-on-surface-variant)', fontFamily: 'var(--type-dr-label-medium-font-family)', fontSize: 'var(--type-dr-label-medium-font-size)' }}>Amount</th>
+                    <tr>
+                      <th>Order</th>
+                      <th>Customer</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: 'right' }}>Amount</th>
                     </tr>
                   </thead>
                   <tbody>
                     {recentOrders.map((order) => (
-                      <tr key={order.id} style={{ borderBottom: '1px solid var(--color-outline-variant)' }}>
-                        <td style={{ padding: '0.75rem 1.25rem' }}>
+                      <tr key={order.id}>
+                        <td>
                           <Link href={`/orders/${order.id}`} style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
                             #{order.reference}
                           </Link>
                         </td>
-                        <td style={{ padding: '0.75rem 1.25rem', color: 'var(--color-on-surface)' }}>{order.customerName}</td>
-                        <td style={{ padding: '0.75rem 1.25rem' }}><StatusBadge status={order.status} /></td>
-                        <td style={{ padding: '0.75rem 1.25rem', textAlign: 'right', fontWeight: 600 }}>{formatNaira(order.totalAmount)}</td>
+                        <td>{order.customerName}</td>
+                        <td><StatusBadge status={order.status} /></td>
+                        <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatNaira(order.totalAmount)}</td>
                       </tr>
                     ))}
                   </tbody>

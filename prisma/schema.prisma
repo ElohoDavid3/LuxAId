@@ -225,6 +225,8 @@ model Product {
   businessId  String
   name        String
   description String
+  imageUrl    String?
+  category    String?
   price       Int // kobo
   status      ProductStatus @default(DRAFT)
   createdAt   DateTime      @default(now())

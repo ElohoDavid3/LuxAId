@@ -20,13 +20,22 @@ export const metadata: Metadata = {
   ),
 };
 
+const themeInitScript = `(function(){try{var t=localStorage.getItem('orderaid-theme');if(t!=='dark'&&t!=='light'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html
+      lang="en"
+      className={inter.variable}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body>{children}</body>
     </html>
   );

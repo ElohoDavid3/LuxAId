@@ -52,6 +52,35 @@ describe('Products', () => {
     expect(variant.inventory?.reserved).toBe(0);
   });
 
+  it('auto-generates a unique SKU when none is provided', async () => {
+    const { user, business } = await createUserInBusiness(
+      'product-auto-sku@example.com',
+    );
+
+    const first = await createProduct(user.id, business.id, {
+      name: 'Ankara Gown',
+      description: 'Elegant ankara gown',
+      price: 25000,
+    });
+    const second = await createProduct(user.id, business.id, {
+      name: 'Ankara Gown',
+      description: 'Another gown',
+      price: 30000,
+      variant: {},
+    });
+
+    expect(first.variants).toHaveLength(1);
+    expect(first.variants[0].sku).toMatch(/^ANK-[A-Z0-9]{6}$/);
+    expect(second.variants[0].sku).toMatch(/^ANK-[A-Z0-9]{6}$/);
+    expect(second.variants[0].sku).not.toBe(first.variants[0].sku);
+
+    const rows = await prisma.productVariant.findMany({
+      where: { businessId: business.id },
+      select: { sku: true },
+    });
+    expect(new Set(rows.map((r) => r.sku)).size).toBe(2);
+  });
+
   it('stores product, variant, and inventory under the owning Business', async () => {
     const { user, business } = await createUserInBusiness(
       'product-owner@example.com',
@@ -112,6 +141,29 @@ describe('Products', () => {
     });
     expect(row.name).toBe('Beaded Necklace Deluxe');
     expect(row.price).toBe(4500);
+  });
+
+  it('sets and clears a product photo via imageUrl', async () => {
+    const { user, business } = await createUserInBusiness(
+      'product-photo@example.com',
+    );
+    const product = await createProduct(user.id, business.id, {
+      name: 'Ankara Gown',
+      description: 'Six-piece Ankara gown',
+      price: 12000,
+      variant: { sku: 'AG-PHOTO' },
+    });
+    expect(product.imageUrl).toBeNull();
+
+    const withPhoto = await updateProduct(user.id, business.id, product.id, {
+      imageUrl: 'https://cdn.example.com/ankara-gown.jpg',
+    });
+    expect(withPhoto.imageUrl).toBe('https://cdn.example.com/ankara-gown.jpg');
+
+    const withoutPhoto = await updateProduct(user.id, business.id, product.id, {
+      imageUrl: null,
+    });
+    expect(withoutPhoto.imageUrl).toBeNull();
   });
 
   it('lists only the products of the requesting business', async () => {

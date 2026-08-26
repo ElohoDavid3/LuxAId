@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { requireDashboardSession } from '@/lib/session';
-import { Topbar } from '@/components/Topbar/Topbar';
 import { Card } from '@/components/Card/Card';
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge';
 import { EmptyState } from '@/components/EmptyState/EmptyState';
@@ -56,7 +55,6 @@ export default async function OrdersPage({
 
   return (
     <div>
-      <Topbar title="Orders" />
       <div style={{ padding: '1.5rem 2rem' }}>
         {/* Filter tabs */}
         <div className={styles.filterTabs} role="tablist" aria-label="Order status filter">

@@ -1,25 +1,12 @@
-import { z, ZodError } from 'zod';
+import { z } from 'zod';
 import { ProductStatus } from '@prisma/client';
-import { AppError } from '../../lib/errors';
 
-export function parseOrThrow<O>(schema: z.ZodSchema<O>, input: unknown): O {
-  try {
-    return schema.parse(input);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      const issue = error.issues[0];
-      const path = issue ? issue.path.join('.') : '';
-      throw new AppError(
-        'VALIDATION_ERROR',
-        issue ? `${path}: ${issue.message}` : 'Invalid input.',
-      );
-    }
-    throw error;
-  }
-}
+export { parseOrThrow } from '../../lib/validation';
 
 const nameSchema = z.string().trim().min(1, 'name is required');
 const descriptionSchema = z.string().trim().min(1, 'description is required');
+const imageUrlSchema = z.string().trim().url('image URL must be a valid URL');
+const categorySchema = z.string().trim().min(1).max(50);
 const priceInKoboSchema = z
   .number()
   .int('price must be a whole number of kobo')
@@ -36,15 +23,18 @@ export const createProductSchema = z
   .object({
     name: nameSchema,
     description: descriptionSchema,
+    imageUrl: imageUrlSchema.optional(),
+    category: categorySchema.optional(),
     price: priceInKoboSchema,
     status: productStatusSchema.optional(),
     variant: z
       .object({
-        sku: skuSchema,
+        sku: skuSchema.optional(),
         name: nameSchema.optional(),
         attributes: attributesSchema.optional(),
       })
-      .strict(),
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -52,6 +42,8 @@ export const updateProductSchema = z
   .object({
     name: nameSchema.optional(),
     description: descriptionSchema.optional(),
+    imageUrl: imageUrlSchema.nullable().optional(),
+    category: categorySchema.nullable().optional(),
     price: priceInKoboSchema.optional(),
   })
   .strict()

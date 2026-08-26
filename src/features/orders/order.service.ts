@@ -154,10 +154,6 @@ export async function updateStatus(
   newStatus: OrderStatus,
 ) {
   await requireScope(userId, businessId, 'orders');
-  const order = await prisma.order.findUnique({ where: { id: orderId, businessId } });
-  if (!order) {
-    throw new AppError('UNKNOWN_ORDER', 'Order not found');
-  }
 
   const allowed: Record<string, string[]> = {
     DRAFT: ['AWAITING_PAYMENT'],
@@ -171,17 +167,30 @@ export async function updateStatus(
     FAILED: [],
     REFUNDED: [],
   };
-  const current = order.status as keyof typeof allowed;
-  if (!allowed[current].includes(newStatus as string)) {
-    throw new AppError(
-      'STATE_CONFLICT',
-      `Cannot transition order from ${current} to ${newStatus}`,
-    );
-  }
 
-  const updated = await prisma.order.update({
-    where: { id: orderId, businessId },
-    data: { status: newStatus },
+  // SELECT ... FOR UPDATE prevents two concurrent transitions from both
+  // reading the same status and both passing the allowed[] check.
+  const order = await prisma.$transaction(async (tx) => {
+    const rows = await tx.$queryRaw<
+      Array<{ id: string; status: string; businessId: string }>
+    >`SELECT id, status, "businessId" FROM "Order" WHERE id = ${orderId} AND "businessId" = ${businessId} FOR UPDATE`;
+
+    if (!rows.length) {
+      throw new AppError('UNKNOWN_ORDER', 'Order not found');
+    }
+
+    const current = rows[0].status as keyof typeof allowed;
+    if (!allowed[current].includes(newStatus as string)) {
+      throw new AppError(
+        'STATE_CONFLICT',
+        `Cannot transition order from ${current} to ${newStatus}`,
+      );
+    }
+
+    return tx.order.update({
+      where: { id: orderId, businessId },
+      data: { status: newStatus },
+    });
   });
 
   await logAudit({
@@ -189,47 +198,8 @@ export async function updateStatus(
     eventType: 'ORDER_STATUS_UPDATED',
     actorType: 'USER',
     actorId: userId,
-    payload: { orderId, from: current, to: newStatus },
+    payload: { orderId, from: order.status, to: newStatus },
   });
 
-  return updated;
-}
-
-/** Record a payment attempt and transition the order to PAID if successful */
-export async function addPaymentAttempt(
-  userId: string,
-  businessId: string,
-  orderId: string,
-  attempt: Prisma.PaymentAttemptCreateInput,
-) {
-  await requireScope(userId, businessId, 'payments');
-
-  // Idempotency – unique transactionReference
-  const existing = await prisma.paymentAttempt.findUnique({
-    where: { transactionReference: attempt.transactionReference as string },
-  });
-  if (existing) {
-    return existing;
-  }
-
-  const created = await prisma.paymentAttempt.create({
-    data: { ...attempt, business: { connect: { id: businessId } }, order: { connect: { id: orderId } } },
-  });
-
-  if (created.status === 'SUCCESSFUL') {
-    await prisma.order.update({
-      where: { id: orderId, businessId },
-      data: { status: 'PAID' },
-    });
-  }
-
-  await logAudit({
-    businessId,
-    eventType: 'PAYMENT_ATTEMPT_RECORDED',
-    actorType: 'USER',
-    actorId: userId,
-    payload: { orderId, paymentAttemptId: created.id, status: created.status },
-  });
-
-  return created;
+  return order;
 }

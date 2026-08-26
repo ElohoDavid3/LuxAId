@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
-import { useEffect, useState } from 'react';
 import styles from './Sidebar.module.css';
 
 /* ── Nav item definition ─────────────────────────────────────────── */
@@ -68,28 +67,12 @@ const NAV_ITEMS: NavItem[] = [
       </svg>
     ),
   },
-];
-
-const SECONDARY_ITEMS: NavItem[] = [
   {
     label: 'Analytics',
     href: '/analytics',
     icon: (
       <svg className={styles.navIcon} viewBox="0 0 20 20" fill="currentColor">
         <path d="M2 11a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-5ZM8 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V7ZM14 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V4Z" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Settings',
-    href: '/settings',
-    icon: (
-      <svg className={styles.navIcon} viewBox="0 0 20 20" fill="currentColor">
-        <path
-          fillRule="evenodd"
-          d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .206 1.25l-1.18 2.045a1 1 0 0 1-1.187.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.252l1.267-1.112a7.047 7.047 0 0 1 0-2.229L1.821 7.773a1 1 0 0 1-.206-1.25l1.18-2.045a1 1 0 0 1 1.187-.447l1.598.54A6.993 6.993 0 0 1 7.51 3.456l.33-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
-          clipRule="evenodd"
-        />
       </svg>
     ),
   },
@@ -104,28 +87,6 @@ type SidebarProps = {
 /* ── Component ───────────────────────────────────────────────────── */
 export function Sidebar({ userName, businessName }: SidebarProps) {
   const pathname = usePathname();
-  const [isDark, setIsDark] = useState(false);
-
-  // Sync dark mode to html element
-  useEffect(() => {
-    const stored = localStorage.getItem('theme');
-    if (stored === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      setIsDark(true);
-    }
-  }, []);
-
-  function toggleTheme() {
-    const next = !isDark;
-    setIsDark(next);
-    if (next) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('theme', 'light');
-    }
-  }
 
   function isActive(href: string) {
     if (href === '/') return pathname === '/';
@@ -192,67 +153,48 @@ export function Sidebar({ userName, businessName }: SidebarProps) {
             </Link>
           ))}
         </div>
-
-        <div className={styles.navSection}>
-          <div className={styles.navSectionLabel}>Management</div>
-          {SECONDARY_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`${styles.navLink} ${isActive(item.href) ? styles.active : ''}`}
-              aria-current={isActive(item.href) ? 'page' : undefined}
-            >
-              {item.icon}
-              {item.label}
-            </Link>
-          ))}
-        </div>
       </nav>
 
       {/* Footer */}
       <div className={styles.footer}>
-        <button
-          id="theme-toggle"
-          className={styles.themeToggle}
-          onClick={toggleTheme}
-          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {isDark ? (
-            <svg className={styles.navIcon} viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm4 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm-.464 4.95.707.707a1 1 0 0 0 1.414-1.414l-.707-.707a1 1 0 0 0-1.414 1.414Zm2.12-10.607a1 1 0 0 1 0 1.414l-.706.707a1 1 0 1 1-1.414-1.414l.707-.707a1 1 0 0 1 1.414 0ZM17 11a1 1 0 1 0 0-2h-1a1 1 0 1 0 0 2h1Zm-7 4a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1ZM5.05 6.464A1 1 0 1 0 6.465 5.05l-.708-.707a1 1 0 0 0-1.414 1.414l.707.707Zm1.414 8.486-.707.707a1 1 0 0 1-1.414-1.414l.707-.707a1 1 0 0 1 1.414 1.414ZM4 11a1 1 0 1 0 0-2H3a1 1 0 1 0 0 2h1Z" />
-            </svg>
-          ) : (
-            <svg className={styles.navIcon} viewBox="0 0 20 20" fill="currentColor">
-              <path d="M17.293 13.293A8 8 0 0 1 6.707 2.707a8.001 8.001 0 1 0 10.586 10.586Z" />
-            </svg>
-          )}
-          {isDark ? 'Light mode' : 'Dark mode'}
-        </button>
-
-        <div className={styles.userRow}>
+        {/* Avatar link */}
+        <Link href="/profile" className={styles.avatarButton}>
           <div className={styles.avatar} aria-hidden="true">{initials}</div>
           <span className={styles.userName}>{userName ?? 'User'}</span>
-          <button
-            id="sign-out-btn"
-            className={styles.signOutBtn}
-            onClick={() => signOut({ callbackUrl: '/auth/login' })}
-            aria-label="Sign out"
-            title="Sign out"
-          >
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-              <path
-                fillRule="evenodd"
-                d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z"
-                clipRule="evenodd"
-              />
-              <path
-                fillRule="evenodd"
-                d="M19 10a.75.75 0 0 0-.75-.75H8.704l1.048-1.048a.75.75 0 1 0-1.06-1.06l-2.25 2.25a.75.75 0 0 0 0 1.06l2.25 2.25a.75.75 0 1 0 1.06-1.06l-1.047-1.048H18.25A.75.75 0 0 0 19 10Z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-        </div>
+        </Link>
+
+        <Link
+          href="/settings"
+          id="settings-btn"
+          className={`${styles.settingsBtnRow} ${isActive('/settings') ? styles.settingsBtnRowActive : ''}`}
+          aria-current={isActive('/settings') ? 'page' : undefined}
+        >
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+            <path
+              d="M3 6h14M3 14h14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            />
+            <circle cx="13" cy="6" r="2.4" fill="currentColor" />
+            <circle cx="7" cy="14" r="2.4" fill="currentColor" />
+          </svg>
+          Settings
+        </Link>
+
+        <button
+          id="sign-out-btn"
+          className={styles.signOutBtnRow}
+          onClick={() => signOut({ callbackUrl: '/auth/login' })}
+          aria-label="Sign out"
+        >
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z" clipRule="evenodd" />
+            <path fillRule="evenodd" d="M19 10a.75.75 0 0 0-.75-.75H8.704l1.048-1.048a.75.75 0 1 0-1.06-1.06l-2.25 2.25a.75.75 0 0 0 0 1.06l2.25 2.25a.75.75 0 1 0 1.06-1.06l-1.047-1.048H18.25A.75.75 0 0 0 19 10Z" clipRule="evenodd" />
+          </svg>
+          Sign out
+        </button>
       </div>
     </aside>
   );

@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation';
+import { SessionProvider } from 'next-auth/react';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Sidebar } from '@/components/Sidebar/Sidebar';
+import { Topbar } from '@/components/Topbar/Topbar';
 import styles from './layout.module.css';
 
 export default async function DashboardLayout({
@@ -21,14 +23,19 @@ export default async function DashboardLayout({
   });
 
   return (
-    <div className={styles.shell}>
-      <Sidebar
-        userName={session.user.name ?? session.user.email ?? undefined}
-        businessName={membership?.business.name}
-      />
-      <div className={styles.main}>
-        <div className={styles.content}>{children}</div>
+    <SessionProvider>
+      <div className={styles.shell}>
+        <Sidebar
+          userName={session.user.name ?? session.user.email ?? undefined}
+          businessName={membership?.business.name}
+        />
+        <div className={styles.main}>
+          <div className={styles.content}>
+            <Topbar />
+            <div className={styles.contentBox}>{children}</div>
+          </div>
+        </div>
       </div>
-    </div>
+    </SessionProvider>
   );
 }

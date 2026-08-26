@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ConversationControlState, EscalationStatus } from '@prisma/client';
+import { requireScope } from '@/features/auth/authorization';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -14,6 +15,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Business ID is required' }, { status: 400 });
   }
 
+  let membership;
+  try {
+    membership = await requireScope(session.user.id, businessId, 'conversations');
+  } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const body = await req.json();
   const conversationId = body.conversationId as string;
   if (!conversationId) {
@@ -22,9 +30,8 @@ export async function POST(req: Request) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Verify conversation belongs to this business and is in PENDING_HANDOFF state
       const conversation = await tx.conversation.findFirst({
-        where: { id: conversationId, businessId },
+        where: { id: conversationId, businessId: membership.businessId },
         select: { id: true, controlState: true },
       });
       if (!conversation) {
@@ -34,11 +41,10 @@ export async function POST(req: Request) {
         throw new Error('STATE_CONFLICT');
       }
 
-      // Find the active escalation (OPEN status)
       const escalation = await tx.escalation.findFirst({
         where: {
           conversationId,
-          businessId,
+          businessId: membership.businessId,
           status: EscalationStatus.OPEN,
         },
       });
@@ -46,7 +52,6 @@ export async function POST(req: Request) {
         throw new Error('NO_ACTIVE_ESCALATION');
       }
 
-      // Atomic assignment: assign where status = OPEN
       const { count } = await tx.escalation.updateMany({
         where: {
           id: escalation.id,
@@ -62,16 +67,14 @@ export async function POST(req: Request) {
         throw new Error('CONCURRENT_TAKEOVER');
       }
 
-      // Transition conversation to HUMAN_CONTROLLED
       await tx.conversation.update({
         where: { id: conversationId },
         data: { controlState: ConversationControlState.HUMAN_CONTROLLED },
       });
 
-      // Audit
       await tx.auditLog.create({
         data: {
-          businessId,
+          businessId: membership.businessId,
           eventType: 'HUMAN_TAKEOVER',
           actorType: 'USER',
           actorId: session.user.id,

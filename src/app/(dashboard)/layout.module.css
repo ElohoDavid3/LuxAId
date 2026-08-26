@@ -3,7 +3,6 @@
 .shell {
   display: flex;
   min-height: 100vh;
-  background-color: var(--color-background);
 }
 
 /* ── Sidebar ────────────────────────────────────────────────────── */
@@ -14,8 +13,7 @@
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  background-color: var(--color-surface-container-low);
-  border-right: 1px solid var(--color-outline-variant);
+  background-color: var(--color-surface);
   display: flex;
   flex-direction: column;
   z-index: 10;
@@ -25,24 +23,49 @@
 .main {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  background-color: var(--color-surface);
+  /* No top padding: the Topbar owns the header strip so its content
+     lines up horizontally with the sidebar brand row */
+  padding: 0 2rem 2rem;
 }
 
 .content {
-  flex: 1;
-  padding: 1.5rem 2rem;
-  overflow-y: auto;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.contentBox {
+  background-color: var(--color-surface);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
+  padding: 2rem;
+}
+
+/* Dark mode: elevate the container above the page so it stays visible,
+   mirroring the light-mode card treatment */
+[data-theme='dark'] .contentBox {
+  background-color: var(--color-surface-container-low);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* ── Responsive: collapse sidebar on small screens ──────────────── */
 @media (max-width: 768px) {
-  .sidebar {
-    display: none;
+  .main {
+    padding: 0 1rem 1rem;
   }
 
   .content {
-    padding: 1rem;
+    max-width: none;
+  }
+
+  .contentBox {
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .sidebar {
+    display: none;
   }
 }

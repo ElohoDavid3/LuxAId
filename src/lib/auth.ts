@@ -51,7 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt: async ({ token, user }) => {
+    jwt: async ({ token, user, trigger, session }) => {
       if (user) {
         token.id = user.id;
         const membership = await prisma.businessMembership.findFirst({
@@ -61,6 +61,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (membership) {
           token.businessId = membership.businessId;
           token.businessName = membership.business.name;
+        }
+      }
+      if (trigger === 'update') {
+        const updated = session as
+          | { name?: unknown; email?: unknown }
+          | null
+          | undefined;
+        if (typeof updated?.name === 'string' && updated.name.trim()) {
+          token.name = updated.name.trim();
+        }
+        if (typeof updated?.email === 'string' && updated.email.trim()) {
+          token.email = updated.email.trim();
         }
       }
       return token;

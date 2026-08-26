@@ -4,8 +4,10 @@ import { AppError } from '../../lib/errors';
 import { EscalationStatus, MembershipStatus, Prisma } from '@prisma/client';
 import {
   assignEscalationSchema,
+  cancelEscalationSchema,
   createEscalationSchema,
   parseOrThrow,
+  reassignEscalationSchema,
 } from './validation';
 import { logAudit } from '../auth/audit';
 
@@ -190,6 +192,109 @@ export async function resolveEscalation(
   await logAudit({
     businessId: membership.businessId,
     eventType: 'ESCALATION_RESOLVED',
+    actorType: 'USER',
+    actorId: userId,
+    payload: {
+      escalationId,
+    },
+  });
+
+  return updated;
+}
+
+export async function cancelEscalation(
+  userId: string,
+  requestedBusinessId: string,
+  escalationId: string,
+  input: unknown = {},
+): Promise<EscalationRecord> {
+  const membership = await resolveMembership(userId, requestedBusinessId);
+  parseOrThrow(cancelEscalationSchema, input);
+
+  const { count } = await prisma.escalation.updateMany({
+    where: {
+      id: escalationId,
+      businessId: membership.businessId,
+      status: EscalationStatus.OPEN,
+    },
+    data: {
+      status: EscalationStatus.CANCELLED,
+      resolvedAt: new Date(),
+    },
+  });
+
+  if (count === 0) {
+    const escalation = await prisma.escalation.findFirst({
+      where: { id: escalationId, businessId: membership.businessId },
+      select: { id: true, status: true },
+    });
+    if (!escalation) {
+      throw new AppError('UNKNOWN_ESCALATION', 'Escalation not found.');
+    }
+    throw new AppError(
+      'STATE_CONFLICT',
+      `Cannot cancel escalation in ${escalation.status} status.`,
+    );
+  }
+
+  const updated = await prisma.escalation.findUniqueOrThrow({
+    where: { id: escalationId },
+  });
+
+  await logAudit({
+    businessId: membership.businessId,
+    eventType: 'ESCALATION_CANCELLED',
+    actorType: 'USER',
+    actorId: userId,
+    payload: {
+      escalationId,
+    },
+  });
+
+  return updated;
+}
+
+export async function reassignEscalation(
+  userId: string,
+  requestedBusinessId: string,
+  escalationId: string,
+): Promise<EscalationRecord> {
+  const membership = await resolveMembership(userId, requestedBusinessId);
+  parseOrThrow(reassignEscalationSchema, {});
+
+  const { count } = await prisma.escalation.updateMany({
+    where: {
+      id: escalationId,
+      businessId: membership.businessId,
+      status: EscalationStatus.ASSIGNED,
+    },
+    data: {
+      status: EscalationStatus.OPEN,
+      assigneeId: null,
+    },
+  });
+
+  if (count === 0) {
+    const escalation = await prisma.escalation.findFirst({
+      where: { id: escalationId, businessId: membership.businessId },
+      select: { id: true, status: true },
+    });
+    if (!escalation) {
+      throw new AppError('UNKNOWN_ESCALATION', 'Escalation not found.');
+    }
+    throw new AppError(
+      'STATE_CONFLICT',
+      `Cannot reassign escalation in ${escalation.status} status.`,
+    );
+  }
+
+  const updated = await prisma.escalation.findUniqueOrThrow({
+    where: { id: escalationId },
+  });
+
+  await logAudit({
+    businessId: membership.businessId,
+    eventType: 'ESCALATION_REASSIGNED',
     actorType: 'USER',
     actorId: userId,
     payload: {

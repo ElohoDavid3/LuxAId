@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
 import { requireDashboardSession } from '@/lib/session';
-import { Topbar } from '@/components/Topbar/Topbar';
 import { Card } from '@/components/Card/Card';
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge';
 import { Button } from '@/components/Button/Button';
@@ -56,14 +55,8 @@ export default async function ConversationDetailPage({
   const isHumanControlled = conversation.controlState === 'HUMAN_CONTROLLED';
   const isPendingHandoff = conversation.controlState === 'PENDING_HANDOFF';
 
-  const breadcrumbs = [
-    { label: 'Conversations', href: '/conversations' },
-    { label: conversation.customer.name },
-  ];
-
   return (
     <div>
-      <Topbar title={`Conversation with ${conversation.customer.name}`} breadcrumbs={breadcrumbs} />
       <div style={{ padding: '1.5rem 2rem' }}>
         <div className={styles.detailGrid}>
           {/* Left: messages */}

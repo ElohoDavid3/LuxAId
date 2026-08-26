@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { requireDashboardSession } from '@/lib/session';
-import { Topbar } from '@/components/Topbar/Topbar';
 import { Card } from '@/components/Card/Card';
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge';
 import { Button } from '@/components/Button/Button';
@@ -44,15 +43,8 @@ export default async function OrderDetailPage({
 
   if (!order) notFound();
 
-  const reference = order.id.slice(-6).toUpperCase();
-  const breadcrumbs = [
-    { label: 'Orders', href: '/orders' },
-    { label: `#${reference}` },
-  ];
-
   return (
     <div>
-      <Topbar title={`Order #${reference}`} breadcrumbs={breadcrumbs} />
       <div style={{ padding: '1.5rem 2rem' }}>
         <div className={styles.detailGrid}>
           {/* Left: items + payments */}

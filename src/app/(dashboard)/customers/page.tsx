@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { requireDashboardSession } from '@/lib/session';
-import { Topbar } from '@/components/Topbar/Topbar';
 import { Card } from '@/components/Card/Card';
 import { EmptyState } from '@/components/EmptyState/EmptyState';
 
@@ -43,7 +42,6 @@ export default async function CustomersPage() {
 
   return (
     <div>
-      <Topbar title="Customers" />
       <div style={{ padding: '1.5rem 2rem' }}>
         <Card shadow>
           {customers.length === 0 ? (

@@ -9,6 +9,9 @@ module.exports = {
   transform: {
     '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.test.json' }],
   },
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
   clearMocks: true,
   testTimeout: 60000,
   maxWorkers: 1,

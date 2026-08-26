@@ -19,6 +19,7 @@ const envSchema = z.object({
   FLW_PUBLIC_KEY: z.string().trim().min(1).optional(),
   FLW_SECRET_KEY: z.string().trim().min(1).optional(),
   FLW_SECRET_HASH: z.string().trim().min(1).optional(),
+  BLOB_READ_WRITE_TOKEN: z.string().trim().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);

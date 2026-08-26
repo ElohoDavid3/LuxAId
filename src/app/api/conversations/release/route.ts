@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ConversationControlState, EscalationStatus } from '@prisma/client';
+import { requireScope } from '@/features/auth/authorization';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -14,6 +15,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Business ID is required' }, { status: 400 });
   }
 
+  let membership;
+  try {
+    membership = await requireScope(session.user.id, businessId, 'conversations');
+  } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const body = await req.json();
   const conversationId = body.conversationId as string;
   const escalationId = body.escalationId as string;
@@ -23,9 +31,8 @@ export async function POST(req: Request) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Verify conversation belongs to this business and is in HUMAN_CONTROLLED state
       const conversation = await tx.conversation.findFirst({
-        where: { id: conversationId, businessId },
+        where: { id: conversationId, businessId: membership.businessId },
         select: { id: true, controlState: true },
       });
       if (!conversation) {
@@ -35,12 +42,11 @@ export async function POST(req: Request) {
         throw new Error('STATE_CONFLICT');
       }
 
-      // Verify escalation is ASSIGNED to the current user
       const escalation = await tx.escalation.findFirst({
         where: {
           id: escalationId,
           conversationId,
-          businessId,
+          businessId: membership.businessId,
           status: EscalationStatus.ASSIGNED,
           assigneeId: session.user.id,
         },
@@ -49,7 +55,6 @@ export async function POST(req: Request) {
         throw new Error('ESCALATION_NOT_FOUND');
       }
 
-      // Resolve the escalation
       await tx.escalation.update({
         where: { id: escalationId },
         data: {
@@ -58,16 +63,14 @@ export async function POST(req: Request) {
         },
       });
 
-      // Transition conversation back to AI_CONTROLLED
       await tx.conversation.update({
         where: { id: conversationId },
         data: { controlState: ConversationControlState.AI_CONTROLLED },
       });
 
-      // Audit
       await tx.auditLog.create({
         data: {
-          businessId,
+          businessId: membership.businessId,
           eventType: 'HUMAN_RELEASE',
           actorType: 'USER',
           actorId: session.user.id,

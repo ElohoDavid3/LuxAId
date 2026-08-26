@@ -360,4 +360,178 @@ describe('Flutterwave webhook route handler', () => {
     const orderAfter = await prisma.order.findUnique({ where: { id: order.id } });
     expect(orderAfter?.status).toBe(OrderStatus.CANCELLED);
   });
+
+  it('handles currency mismatch safely without marking order paid', async () => {
+    const { business } = await createUserInBusiness('curr@flwtest.com');
+    const customer = await prisma.customer.create({
+      data: { businessId: business.id, name: 'Eve', email: 'eve@example.com' },
+    });
+    const order = await prisma.order.create({
+      data: {
+        businessId: business.id,
+        customerId: customer.id,
+        status: OrderStatus.AWAITING_PAYMENT,
+        totalAmount: 500000, // 5,000 NGN in kobo
+      },
+    });
+    const txRef = 'tx_flw_currency_mismatch';
+    const attempt = await prisma.paymentAttempt.create({
+      data: {
+        businessId: business.id,
+        orderId: order.id,
+        status: PaymentAttemptStatus.PENDING,
+        amount: 500000,
+        currency: 'NGN',
+        transactionReference: txRef,
+      },
+    });
+
+    // Mock verification returning USD currency (mismatch!)
+    global.fetch = jest.fn().mockImplementation(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        status: 'success',
+        data: {
+          id: 77777,
+          tx_ref: txRef,
+          amount: 5000,
+          currency: 'USD',
+          status: 'successful',
+        },
+      }),
+    })) as unknown as typeof fetch;
+
+    const { POST } = await import('../src/app/api/webhooks/flutterwave/route');
+
+    const body = JSON.stringify({
+      event: 'charge.completed',
+      data: { id: 77777, tx_ref: txRef, amount: 5000, currency: 'USD', status: 'successful' },
+    });
+    const request = createSignedRequest(body);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await POST(request as any);
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as { status?: string };
+    expect(json.status).toBe('mismatch');
+
+    const unchangedOrder = await prisma.order.findUnique({ where: { id: order.id } });
+    expect(unchangedOrder?.status).toBe(OrderStatus.AWAITING_PAYMENT);
+
+    const unchangedAttempt = await prisma.paymentAttempt.findUnique({ where: { id: attempt.id } });
+    expect(unchangedAttempt?.status).toBe(PaymentAttemptStatus.PENDING);
+  });
+
+  it('returns 500 when Flutterwave verification API fails (allows retry)', async () => {
+    const { business } = await createUserInBusiness('fail@flwtest.com');
+    const customer = await prisma.customer.create({
+      data: { businessId: business.id, name: 'Frank', email: 'frank@example.com' },
+    });
+    const order = await prisma.order.create({
+      data: {
+        businessId: business.id,
+        customerId: customer.id,
+        status: OrderStatus.AWAITING_PAYMENT,
+        totalAmount: 250000,
+      },
+    });
+    const txRef = 'tx_flw_api_failure';
+    await prisma.paymentAttempt.create({
+      data: {
+        businessId: business.id,
+        orderId: order.id,
+        status: PaymentAttemptStatus.PENDING,
+        amount: 250000,
+        currency: 'NGN',
+        transactionReference: txRef,
+      },
+    });
+
+    // Mock Flutterwave verify API returning an error
+    global.fetch = jest.fn().mockImplementation(async () => ({
+      ok: false,
+      status: 500,
+      json: async () => ({ status: 'error', message: 'Internal server error' }),
+    })) as unknown as typeof fetch;
+
+    const { POST } = await import('../src/app/api/webhooks/flutterwave/route');
+
+    const body = JSON.stringify({
+      event: 'charge.completed',
+      data: { id: 88888, tx_ref: txRef, amount: 2500, currency: 'NGN', status: 'successful' },
+    });
+    const request = createSignedRequest(body);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await POST(request as any);
+    expect(response.status).toBe(500);
+    const json = (await response.json()) as { error?: string };
+    expect(json.error).toBe('Webhook processing failed');
+
+    // Order must remain AWAITING_PAYMENT
+    const unchangedOrder = await prisma.order.findUnique({ where: { id: order.id } });
+    expect(unchangedOrder?.status).toBe(OrderStatus.AWAITING_PAYMENT);
+  });
+
+  it('rejects reference mismatch: Flutterwave returns different tx_ref than expected', async () => {
+    const { business } = await createUserInBusiness('ref@flwtest.com');
+    const customer = await prisma.customer.create({
+      data: { businessId: business.id, name: 'Grace', email: 'grace@example.com' },
+    });
+    const order = await prisma.order.create({
+      data: {
+        businessId: business.id,
+        customerId: customer.id,
+        status: OrderStatus.AWAITING_PAYMENT,
+        totalAmount: 350000,
+      },
+    });
+    const txRef = 'tx_flw_expected_ref';
+    const attempt = await prisma.paymentAttempt.create({
+      data: {
+        businessId: business.id,
+        orderId: order.id,
+        status: PaymentAttemptStatus.PENDING,
+        amount: 350000,
+        currency: 'NGN',
+        transactionReference: txRef,
+      },
+    });
+
+    // Mock verification returning a different tx_ref than expected
+    global.fetch = jest.fn().mockImplementation(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        status: 'success',
+        data: {
+          id: 44444,
+          tx_ref: 'tx_flw_different_ref',
+          amount: 3500,
+          currency: 'NGN',
+          status: 'successful',
+        },
+      }),
+    })) as unknown as typeof fetch;
+
+    const { POST } = await import('../src/app/api/webhooks/flutterwave/route');
+
+    const body = JSON.stringify({
+      event: 'charge.completed',
+      data: { id: 44444, tx_ref: txRef, amount: 3500, currency: 'NGN', status: 'successful' },
+    });
+    const request = createSignedRequest(body);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await POST(request as any);
+    expect(response.status).toBe(200);
+
+    // Order must remain AWAITING_PAYMENT and attempt must remain PENDING
+    const unchangedOrder = await prisma.order.findUnique({ where: { id: order.id } });
+    expect(unchangedOrder?.status).toBe(OrderStatus.AWAITING_PAYMENT);
+
+    const unchangedAttempt = await prisma.paymentAttempt.findUnique({ where: { id: attempt.id } });
+    expect(unchangedAttempt?.status).toBe(PaymentAttemptStatus.PENDING);
+  });
 });
