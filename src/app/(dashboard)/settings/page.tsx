@@ -11,6 +11,7 @@ import {
   getInstagramConnection,
 } from '@/features/settings/instagram-connection';
 import { listDeliveryZones } from '@/features/delivery/delivery-zone.service';
+import { TwoFactorAuth } from '@/components/Settings/TwoFactorAuth/TwoFactorAuth';
 import styles from './page.module.css';
 
 export const metadata: Metadata = { title: 'Settings' };
@@ -39,7 +40,7 @@ const OTHER_CHANNELS = [
 ];
 
 async function getSettingsData(businessId: string, userId: string) {
-  const [memberships, settings, connectedChannels, whatsappStatus, instagramStatus, zones] =
+  const [memberships, settings, connectedChannels, whatsappStatus, instagramStatus, zones, user] =
     await Promise.all([
       prisma.businessMembership.findMany({
         where: { businessId, status: 'ACTIVE' },
@@ -57,6 +58,10 @@ async function getSettingsData(businessId: string, userId: string) {
       getWhatsAppConnection(businessId),
       getInstagramConnection(businessId),
       listDeliveryZones(userId, businessId),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { twoFactorEnabled: true },
+      }),
     ]);
 
   const deliveryZones: DeliveryZoneView[] = zones.map((z) => ({
@@ -75,6 +80,7 @@ async function getSettingsData(businessId: string, userId: string) {
     whatsappStatus,
     instagramStatus,
     deliveryZones,
+    twoFactorEnabled: user?.twoFactorEnabled ?? false,
   };
 }
 
@@ -91,6 +97,7 @@ export default async function SettingsPage() {
     whatsappStatus,
     instagramStatus,
     deliveryZones,
+    twoFactorEnabled,
   } = await getSettingsData(session.businessId, session.userId);
 
   const notificationConfig = (settings?.notificationConfig as Record<string, unknown>) ?? {};
@@ -242,15 +249,7 @@ export default async function SettingsPage() {
         <Card shadow padded>
           <h2 className={styles.sectionTitle}>Security</h2>
           <div className={styles.rowList} style={{ marginTop: '0.5rem' }}>
-            <div className={styles.row}>
-              <div className={styles.rowInfo}>
-                <div className={styles.rowName}>Two-factor authentication</div>
-                <div className={styles.rowDesc}>
-                  Add an extra code at sign-in to protect your account.
-                </div>
-              </div>
-              <span className={styles.soonBadge}>Coming soon</span>
-            </div>
+            <TwoFactorAuth initialEnabled={twoFactorEnabled} />
             <div className={styles.row}>
               <div className={styles.rowInfo}>
                 <div className={styles.rowName}>Sign out of all devices</div>

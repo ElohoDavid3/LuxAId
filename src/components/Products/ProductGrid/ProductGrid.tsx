@@ -25,6 +25,7 @@ export function ProductGrid({ products }: { products: EditableProduct[] }) {
   const [busyProductId, setBusyProductId] = useState<string | null>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [nairaPrice, setNairaPrice] = useState('');
@@ -54,6 +55,7 @@ export function ProductGrid({ products }: { products: EditableProduct[] }) {
 
   function startEditing(product: EditableProduct) {
     setEditingId(product.id);
+    setEditingImageUrl(product.imageUrl ?? null);
     setName(product.name);
     setDescription(product.description ?? '');
     setNairaPrice((product.price / 100).toString());
@@ -187,10 +189,15 @@ export function ProductGrid({ products }: { products: EditableProduct[] }) {
           </div>
         </div>
 
-        <p className={styles.hint}>
-          Photos are managed from the product card. Go back and use
-          &quot;Add photo&quot; or &quot;Change photo&quot;.
-        </p>
+        <ProductPhotoManager
+          productName={name}
+          currentImageUrl={editingImageUrl}
+          isSaving={busyProductId === editingId}
+          onSave={async (url) => {
+            await saveImageUrl(editingId!, url);
+            setEditingImageUrl(url);
+          }}
+        />
 
         <div className={styles.formActions}>
           <button
@@ -242,14 +249,6 @@ export function ProductGrid({ products }: { products: EditableProduct[] }) {
                 <path d="M13.586 3.586a2 2 0 1 1 2.828 2.828l-.793.793-2.828-2.828.793-.793ZM11.379 5.793 3 14.172V17h2.828l8.38-8.379-2.829-2.828Z" />
               </svg>
             </button>
-          }
-          actions={
-            <ProductPhotoManager
-              productName={product.name}
-              currentImageUrl={product.imageUrl}
-              isSaving={busyProductId === product.id}
-              onSave={(url) => saveImageUrl(product.id, url)}
-            />
           }
         />
       ))}

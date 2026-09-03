@@ -14,7 +14,15 @@ declare module 'next-auth' {
       email?: string | null;
       businessId?: string;
       businessName?: string;
+      twoFactorPending?: boolean;
     };
+  }
+
+  interface JWT {
+    id: string;
+    businessId?: string;
+    businessName?: string;
+    twoFactorPending?: boolean;
   }
 }
 
@@ -33,6 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   providers: [
     Credentials({
+      id: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
@@ -49,11 +58,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return authorizeCredentials(email, password);
       },
     }),
+    Credentials({
+      id: 'credentials-2fa',
+      credentials: {
+        userId: { label: 'User ID', type: 'text' },
+      },
+      authorize: async (credentials) => {
+        const userId =
+          typeof credentials?.userId === 'string'
+            ? credentials.userId
+            : undefined;
+        if (!userId) return null;
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, name: true, email: true, twoFactorEnabled: true },
+        });
+        if (!user || !user.twoFactorEnabled) return null;
+        return { id: user.id, name: user.name, email: user.email };
+      },
+    }),
   ],
   callbacks: {
     jwt: async ({ token, user, trigger, session }) => {
       if (user) {
         token.id = user.id;
+        if ('twoFactorPending' in user) {
+          token.twoFactorPending = user.twoFactorPending as boolean;
+        }
         const membership = await prisma.businessMembership.findFirst({
           where: { userId: user.id, status: 'ACTIVE' },
           select: { businessId: true, business: { select: { name: true } } },
@@ -82,6 +113,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string;
         session.user.businessId = token.businessId as string | undefined;
         session.user.businessName = token.businessName as string | undefined;
+        session.user.twoFactorPending = token.twoFactorPending as
+          | boolean
+          | undefined;
       }
       return session;
     },

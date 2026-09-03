@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState, useTransition } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, signOut } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import styles from '../../login/page.module.css';
 
@@ -57,9 +57,22 @@ function AuthPage() {
 
       if (result?.error) {
         setError('Incorrect email or password. Please try again.');
-      } else {
-        router.push(callbackUrl);
-        router.refresh();
+      } else if (result?.ok) {
+        const sessionRes = await fetch('/api/auth/session');
+        const sessionData = await sessionRes.json().catch(() => null) as {
+          user?: { twoFactorPending?: boolean; id?: string };
+        } | null;
+
+        if (sessionData?.user?.twoFactorPending && sessionData?.user?.id) {
+          sessionStorage.setItem('2fa_userId', sessionData.user.id);
+          await signOut({ redirect: false });
+          router.push(
+            `/auth/verify-2fa?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+          );
+        } else {
+          router.push(callbackUrl);
+          router.refresh();
+        }
       }
     });
   }

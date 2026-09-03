@@ -1,4 +1,6 @@
 import { put } from '@vercel/blob';
+import { mkdir, writeFile } from 'fs/promises';
+import { join } from 'path';
 import { env } from '../../lib/env';
 import { AppError } from '../../lib/errors';
 
@@ -15,23 +17,7 @@ export interface UploadedProductImage {
   pathname: string;
 }
 
-/**
- * Store a product image for a business.
- *
- * Files are stored under a tenant-scoped path prefix so blobs are grouped
- * by business. Returns the public URL to persist on the product record.
- */
-export async function uploadProductImage(
-  businessId: string,
-  file: File,
-): Promise<UploadedProductImage> {
-  if (!env.BLOB_READ_WRITE_TOKEN) {
-    throw new AppError(
-      'INTEGRATION_FAILURE',
-      'Image storage is not configured. Please contact support.',
-    );
-  }
-
+function validateImage(file: File): string {
   const extension = ALLOWED_IMAGE_TYPES[file.type];
   if (!extension) {
     throw new AppError(
@@ -51,16 +37,62 @@ export async function uploadProductImage(
     );
   }
 
+  return extension;
+}
+
+async function storeLocally(
+  businessId: string,
+  buffer: Buffer,
+  extension: string,
+  contentType: string,
+): Promise<UploadedProductImage> {
+  const dir = join(process.cwd(), 'public', 'uploads', 'products', businessId);
+  await mkdir(dir, { recursive: true });
+
+  const filename = `${crypto.randomUUID()}.${extension}`;
+  const filePath = join(dir, filename);
+  await writeFile(filePath, buffer);
+
+  return {
+    url: `/uploads/products/${businessId}/${filename}`,
+    pathname: `products/${businessId}/${filename}`,
+  };
+}
+
+async function storeOnVercelBlob(
+  pathname: string,
+  buffer: Buffer,
+  contentType: string,
+): Promise<UploadedProductImage> {
+  const blob = await put(pathname, buffer, {
+    access: 'public',
+    contentType,
+    addRandomSuffix: false,
+  });
+  return { url: blob.url, pathname: blob.pathname };
+}
+
+/**
+ * Store a product image for a business.
+ *
+ * Uses Vercel Blob in production (when BLOB_READ_WRITE_TOKEN is set).
+ * Falls back to local file system storage in development.
+ * Returns the public URL to persist on the product record.
+ */
+export async function uploadProductImage(
+  businessId: string,
+  file: File,
+): Promise<UploadedProductImage> {
+  const extension = validateImage(file);
+
   const buffer = Buffer.from(await file.arrayBuffer());
   const pathname = `products/${businessId}/${crypto.randomUUID()}.${extension}`;
 
   try {
-    const blob = await put(pathname, buffer, {
-      access: 'public',
-      contentType: file.type,
-      addRandomSuffix: false,
-    });
-    return { url: blob.url, pathname: blob.pathname };
+    if (env.BLOB_READ_WRITE_TOKEN) {
+      return await storeOnVercelBlob(pathname, buffer, file.type);
+    }
+    return await storeLocally(businessId, buffer, extension, file.type);
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError(

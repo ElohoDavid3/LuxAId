@@ -150,6 +150,10 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  twoFactorEnabled    Boolean  @default(false)
+  twoFactorSecret     String?
+  twoFactorBackupCodes String? // JSON array of hashed backup codes
+
   memberships         BusinessMembership[]
   escalations         Escalation[] // assignee
   sessions            Session[]

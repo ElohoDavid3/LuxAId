@@ -5,7 +5,13 @@ export { parseOrThrow } from '../../lib/validation';
 
 const nameSchema = z.string().trim().min(1, 'name is required');
 const descriptionSchema = z.string().trim().min(1, 'description is required');
-const imageUrlSchema = z.string().trim().url('image URL must be a valid URL');
+const imageUrlSchema = z
+  .string()
+  .trim()
+  .refine(
+    (v) => z.string().url().safeParse(v).success || v.startsWith('/'),
+    'image URL must be a valid URL',
+  );
 const categorySchema = z.string().trim().min(1).max(50);
 const priceInKoboSchema = z
   .number()

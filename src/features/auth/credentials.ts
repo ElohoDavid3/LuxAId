@@ -5,6 +5,7 @@ export interface VerifiedCredentials {
   id: string;
   name: string;
   email: string;
+  twoFactorPending?: boolean;
 }
 
 export function normalizeEmail(email: string): string {
@@ -22,5 +23,10 @@ export async function authorizeCredentials(
   if (!user) return null;
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) return null;
-  return { id: user.id, name: user.name, email: user.email };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    twoFactorPending: user.twoFactorEnabled,
+  };
 }
