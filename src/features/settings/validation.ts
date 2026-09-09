@@ -28,10 +28,21 @@ export const connectInstagramSchema = z
   })
   .strict();
 
+export const connectFacebookSchema = z
+  .object({
+    pageId: phoneNumberIdSchema,
+    accessToken: accessTokenSchema.optional(),
+  })
+  .strict();
+
 export function parseConnectWhatsAppInput(input: unknown) {
   return parseOrThrow(connectWhatsAppSchema, input);
 }
 
 export function parseConnectInstagramInput(input: unknown) {
   return parseOrThrow(connectInstagramSchema, input);
+}
+
+export function parseConnectFacebookInput(input: unknown) {
+  return parseOrThrow(connectFacebookSchema, input);
 }

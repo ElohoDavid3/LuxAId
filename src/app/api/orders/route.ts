@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid payload', details: parseResult.error.format() }, { status: 400 });
   }
 
-  const businessId = (session.user as { businessId?: string }).businessId || (body as { businessId?: string }).businessId;
+  const businessId = (session.user as { businessId?: string }).businessId;
   if (!businessId) {
     return NextResponse.json({ error: 'Business ID is required' }, { status: 400 });
   }
@@ -39,7 +39,7 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url);
-  const businessId = (session.user as { businessId?: string }).businessId || searchParams.get('businessId');
+  const businessId = (session.user as { businessId?: string }).businessId;
   if (!businessId) {
     return NextResponse.json({ error: 'Business ID is required' }, { status: 400 });
   }

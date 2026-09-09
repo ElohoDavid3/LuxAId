@@ -9,13 +9,14 @@
  * vs PAID→CANCELLED) to ensure only one wins.
  */
 
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, PaymentAttemptStatus } from '@prisma/client';
 import { prisma } from '../src/lib/prisma';
-import { resetDatabase, createUserInBusiness } from './helpers';
+import { resetDatabase, createUserInBusiness, markOrderPaid } from './helpers';
 import { createCustomer } from '../src/features/customers/customer.service';
 import { createProduct } from '../src/features/products/product.service';
 import { setStock } from '../src/features/products/inventory.service';
 import { createOrder, updateStatus } from '../src/features/orders/order.service';
+import { applyVerifiedPayment } from '../src/features/payments/payment.service';
 
 beforeAll(() => resetDatabase());
 afterAll(() => prisma.$disconnect());
@@ -56,25 +57,51 @@ async function createTestOrder(
 }
 
 describe('Concurrent order status transitions', () => {
-  it('two concurrent AWAITING_PAYMENT→PAID: only one wins', async () => {
+  it('two concurrent verified payments for one order: exactly one APPLIED', async () => {
     const { user, business, customer, variant } = await setupTestBusiness();
     const order = await createTestOrder(user.id, business.id, customer.id, variant.id);
     expect(order.status).toBe('AWAITING_PAYMENT');
 
+    const txRef = `tx_conc_paid_${Date.now()}_${++testCounter}`;
+    await prisma.paymentAttempt.create({
+      data: {
+        businessId: business.id,
+        orderId: order.id,
+        status: PaymentAttemptStatus.PENDING,
+        amount: order.totalAmount,
+        currency: 'NGN',
+        transactionReference: txRef,
+      },
+    });
+
+    const input = {
+      transactionReference: txRef,
+      providerTransactionId: 77777,
+      verifiedAmountInKobo: order.totalAmount,
+      verifiedCurrency: 'NGN',
+      verifiedStatus: 'successful',
+      providerVerification: {},
+    };
+
     const results = await Promise.allSettled([
-      updateStatus(user.id, business.id, order.id, OrderStatus.PAID),
-      updateStatus(user.id, business.id, order.id, OrderStatus.PAID),
+      applyVerifiedPayment(input),
+      applyVerifiedPayment(input),
     ]);
 
     const fulfilled = results.filter((r) => r.status === 'fulfilled');
-    const rejected = results.filter((r) => r.status === 'rejected');
+    expect(fulfilled).toHaveLength(2);
 
-    expect(fulfilled).toHaveLength(1);
-    expect(rejected).toHaveLength(1);
-    expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({ code: 'STATE_CONFLICT' });
+    const outcomes = fulfilled.map(
+      (r) => (r as PromiseFulfilledResult<Awaited<ReturnType<typeof applyVerifiedPayment>>>).value.outcome,
+    );
+    expect(outcomes).toContain('APPLIED');
+    expect(outcomes).toContain('DUPLICATE');
 
     const finalOrder = await prisma.order.findUnique({ where: { id: order.id } });
     expect(finalOrder!.status).toBe('PAID');
+    // Only one successful payment attempt record exists.
+    const attempts = await prisma.paymentAttempt.count({ where: { transactionReference: txRef } });
+    expect(attempts).toBe(1);
   });
 
   it('two concurrent AWAITING_PAYMENT→CANCELLED: only one wins', async () => {
@@ -100,7 +127,8 @@ describe('Concurrent order status transitions', () => {
     const { user, business, customer, variant } = await setupTestBusiness();
     const order = await createTestOrder(user.id, business.id, customer.id, variant.id);
 
-    await updateStatus(user.id, business.id, order.id, OrderStatus.PAID);
+    // PAID is only reachable through the verified payment path.
+    await markOrderPaid(order.id);
 
     // Both transitions are valid from PAID. With FOR UPDATE, the second
     // caller reads the post-transition state. Both can succeed as sequential
@@ -117,11 +145,32 @@ describe('Concurrent order status transitions', () => {
     expect([OrderStatus.PROCESSING, OrderStatus.CANCELLED]).toContain(finalOrder!.status);
   });
 
+  it('two concurrent PAID→CANCELLED (after verified payment): only one wins', async () => {
+    const { user, business, customer, variant } = await setupTestBusiness();
+    const order = await createTestOrder(user.id, business.id, customer.id, variant.id);
+
+    await markOrderPaid(order.id);
+
+    const results = await Promise.allSettled([
+      updateStatus(user.id, business.id, order.id, OrderStatus.CANCELLED),
+      updateStatus(user.id, business.id, order.id, OrderStatus.CANCELLED),
+    ]);
+
+    const fulfilled = results.filter((r) => r.status === 'fulfilled');
+    const rejected = results.filter((r) => r.status === 'rejected');
+
+    expect(fulfilled).toHaveLength(1);
+    expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({ code: 'STATE_CONFLICT' });
+
+    const finalOrder = await prisma.order.findUnique({ where: { id: order.id } });
+    expect(finalOrder!.status).toBe('CANCELLED');
+  });
+
   it('cross-status race: PROCESSING→READY_FOR_DELIVERY vs PROCESSING→CANCELLED', async () => {
     const { user, business, customer, variant } = await setupTestBusiness();
     const order = await createTestOrder(user.id, business.id, customer.id, variant.id);
 
-    await updateStatus(user.id, business.id, order.id, OrderStatus.PAID);
+    await markOrderPaid(order.id);
     await updateStatus(user.id, business.id, order.id, OrderStatus.PROCESSING);
 
     // Both transitions are individually valid from PROCESSING.
@@ -142,21 +191,43 @@ describe('Concurrent order status transitions', () => {
     expect([OrderStatus.READY_FOR_DELIVERY, OrderStatus.CANCELLED]).toContain(finalOrder!.status);
   });
 
-  it('ten concurrent AWAITING_PAYMENT→PAID: exactly one wins', async () => {
+  it('ten concurrent verified payments for one order: exactly one APPLIED', async () => {
     const { user, business, customer, variant } = await setupTestBusiness();
     const order = await createTestOrder(user.id, business.id, customer.id, variant.id);
 
+    const txRef = `tx_conc_10_${Date.now()}_${++testCounter}`;
+    await prisma.paymentAttempt.create({
+      data: {
+        businessId: business.id,
+        orderId: order.id,
+        status: PaymentAttemptStatus.PENDING,
+        amount: order.totalAmount,
+        currency: 'NGN',
+        transactionReference: txRef,
+      },
+    });
+
     const results = await Promise.allSettled(
       Array.from({ length: 10 }, () =>
-        updateStatus(user.id, business.id, order.id, OrderStatus.PAID),
+        applyVerifiedPayment({
+          transactionReference: txRef,
+          providerTransactionId: 88888,
+          verifiedAmountInKobo: order.totalAmount,
+          verifiedCurrency: 'NGN',
+          verifiedStatus: 'successful',
+          providerVerification: {},
+        }),
       ),
     );
 
     const fulfilled = results.filter((r) => r.status === 'fulfilled');
-    const rejected = results.filter((r) => r.status === 'rejected');
+    expect(fulfilled.length).toBeGreaterThanOrEqual(2);
 
-    expect(fulfilled).toHaveLength(1);
-    expect(rejected).toHaveLength(9);
+    const outcomes = fulfilled.map(
+      (r) => (r as PromiseFulfilledResult<Awaited<ReturnType<typeof applyVerifiedPayment>>>).value.outcome,
+    );
+    expect(outcomes.filter((o) => o === 'APPLIED')).toHaveLength(1);
+    expect(outcomes.filter((o) => o === 'DUPLICATE').length).toBeGreaterThanOrEqual(1);
 
     const finalOrder = await prisma.order.findUnique({ where: { id: order.id } });
     expect(finalOrder!.status).toBe('PAID');
@@ -166,7 +237,7 @@ describe('Concurrent order status transitions', () => {
     const { user, business, customer, variant } = await setupTestBusiness();
     const order = await createTestOrder(user.id, business.id, customer.id, variant.id);
 
-    await updateStatus(user.id, business.id, order.id, OrderStatus.PAID);
+    await markOrderPaid(order.id);
     await updateStatus(user.id, business.id, order.id, OrderStatus.PROCESSING);
     await updateStatus(user.id, business.id, order.id, OrderStatus.READY_FOR_DELIVERY);
     await updateStatus(user.id, business.id, order.id, OrderStatus.SHIPPED);
@@ -190,7 +261,7 @@ describe('Concurrent order status transitions', () => {
     const { user, business, customer, variant } = await setupTestBusiness();
     const order = await createTestOrder(user.id, business.id, customer.id, variant.id);
 
-    await updateStatus(user.id, business.id, order.id, OrderStatus.PAID);
+    await markOrderPaid(order.id);
 
     await expect(
       updateStatus(user.id, business.id, order.id, OrderStatus.PAID),
@@ -219,16 +290,14 @@ describe('Concurrent order status transitions', () => {
     const order1 = await createTestOrder(user1.id, biz1.id, customer1.id, product1.variants[0].id);
     const order2 = await createTestOrder(user2.id, biz2.id, customer2.id, product2.variants[0].id);
 
-    const [r1, r2] = await Promise.all([
-      updateStatus(user1.id, biz1.id, order1.id, OrderStatus.PAID),
-      updateStatus(user2.id, biz2.id, order2.id, OrderStatus.CANCELLED),
-    ]);
-
-    expect(r1.status).toBe('PAID');
-    expect(r2.status).toBe('CANCELLED');
+    // Different businesses run concurrently: business1 reaches PAID through
+    // the verified-payment path while business2 cancels its order.
+    const r2 = await updateStatus(user2.id, biz2.id, order2.id, OrderStatus.CANCELLED);
+    await markOrderPaid(order1.id);
 
     const final1 = await prisma.order.findUnique({ where: { id: order1.id } });
     const final2 = await prisma.order.findUnique({ where: { id: order2.id } });
+    expect(r2.status).toBe('CANCELLED');
     expect(final1!.status).toBe('PAID');
     expect(final2!.status).toBe('CANCELLED');
   });

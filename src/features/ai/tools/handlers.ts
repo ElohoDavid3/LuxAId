@@ -250,13 +250,21 @@ async function handleEscalate(
     { reason },
   );
 
-  await conversationService.updateControlState(
+  const conversation = await conversationService.getConversation(
     ctx.systemUserId,
     ctx.businessId,
     conversationId,
-    ConversationControlState.AI_CONTROLLED,
-    ConversationControlState.PENDING_HANDOFF,
   );
+
+  if (conversation.controlState === ConversationControlState.AI_CONTROLLED) {
+    await conversationService.updateControlState(
+      ctx.systemUserId,
+      ctx.businessId,
+      conversationId,
+      ConversationControlState.AI_CONTROLLED,
+      ConversationControlState.PENDING_HANDOFF,
+    );
+  }
 
   return JSON.stringify({
     escalated: true,

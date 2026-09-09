@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ConversationControlState, EscalationStatus } from '@prisma/client';
 import { requireScope } from '@/features/auth/authorization';
+import { AppError } from '@/lib/errors';
+import { readJsonBody } from '@/lib/http';
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -22,7 +24,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await readJsonBody(req);
+  } catch (e) {
+    const status = e instanceof AppError ? e.status : 500;
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : 'Invalid request' },
+      { status },
+    );
+  }
   const conversationId = body.conversationId as string;
   if (!conversationId) {
     return NextResponse.json({ error: 'conversationId is required' }, { status: 400 });

@@ -11,7 +11,12 @@ export const metadata: Metadata = { title: 'Orders' };
 
 async function getOrders(businessId: string, filter?: string) {
   const where: Record<string, unknown> = { businessId };
-  if (filter && filter !== 'All') {
+  if (filter === 'payment_issue') {
+    where.OR = [
+      { status: 'AWAITING_PAYMENT' },
+      { paymentAttempts: { some: { status: 'FAILED' } } },
+    ];
+  } else if (filter && filter !== 'All') {
     where.status = filter;
   }
 

@@ -2,10 +2,10 @@ import { z } from 'zod';
 
 /** Schema for creating an order */
 export const CreateOrderSchema = z.object({
-  customerId: z.string().uuid(),
+  customerId: z.string().min(1),
   items: z.array(
     z.object({
-      productVariantId: z.string().uuid(),
+      productVariantId: z.string().min(1),
       quantity: z.number().int().positive(),
     }),
   ).min(1),

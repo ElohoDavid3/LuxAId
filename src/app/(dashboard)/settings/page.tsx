@@ -10,8 +10,12 @@ import {
 import {
   getInstagramConnection,
 } from '@/features/settings/instagram-connection';
+import {
+  getFacebookConnection,
+} from '@/features/settings/facebook-connection';
 import { listDeliveryZones } from '@/features/delivery/delivery-zone.service';
 import { TwoFactorAuth } from '@/components/Settings/TwoFactorAuth/TwoFactorAuth';
+import { NotificationSettingsForm } from './NotificationSettingsForm';
 import styles from './page.module.css';
 
 export const metadata: Metadata = { title: 'Settings' };
@@ -27,20 +31,10 @@ const OTHER_CHANNELS = [
       </svg>
     ),
   },
-  {
-    id: 'facebook',
-    name: 'Facebook',
-    description: 'Connect your Facebook Page to handle messages and orders via Messenger.',
-    icon: (
-      <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
-        <path fillRule="evenodd" d="M2 4.25A2.25 2.25 0 0 1 4.25 2h11.5A2.25 2.25 0 0 1 18 4.25v8.5A2.25 2.25 0 0 1 15.75 15h-3.105a3.501 3.501 0 0 0 1.1 1.677A.75.75 0 0 1 13.26 18H6.74a.75.75 0 0 1-.484-1.323A3.501 3.501 0 0 0 7.355 15H4.25A2.25 2.25 0 0 1 2 12.75v-8.5Zm6.75 6.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
-      </svg>
-    ),
-  },
 ];
 
 async function getSettingsData(businessId: string, userId: string) {
-  const [memberships, settings, connectedChannels, whatsappStatus, instagramStatus, zones, user] =
+  const [memberships, settings, connectedChannels, whatsappStatus, instagramStatus, facebookStatus, zones, user] =
     await Promise.all([
       prisma.businessMembership.findMany({
         where: { businessId, status: 'ACTIVE' },
@@ -57,6 +51,7 @@ async function getSettingsData(businessId: string, userId: string) {
       }),
       getWhatsAppConnection(businessId),
       getInstagramConnection(businessId),
+      getFacebookConnection(userId, businessId),
       listDeliveryZones(userId, businessId),
       prisma.user.findUnique({
         where: { id: userId },
@@ -79,6 +74,7 @@ async function getSettingsData(businessId: string, userId: string) {
     connectedChannels,
     whatsappStatus,
     instagramStatus,
+    facebookStatus,
     deliveryZones,
     twoFactorEnabled: user?.twoFactorEnabled ?? false,
   };
@@ -96,6 +92,7 @@ export default async function SettingsPage() {
     connectedChannels,
     whatsappStatus,
     instagramStatus,
+    facebookStatus,
     deliveryZones,
     twoFactorEnabled,
   } = await getSettingsData(session.businessId, session.userId);
@@ -197,6 +194,23 @@ export default async function SettingsPage() {
                 </svg>
               }
             />
+            <ChannelConnection
+              endpoint="/api/settings/facebook"
+              name="Facebook"
+              description="Connect your Facebook Page to handle messages and orders via Messenger."
+              initial={{
+                connected: facebookStatus.connected,
+                displayLabel: facebookStatus.pageName,
+              }}
+              idFieldName="pageId"
+              idFieldLabel="Facebook Page ID"
+              idFieldPlaceholder="Your Facebook Page ID from Meta"
+              icon={
+                <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                  <path fillRule="evenodd" d="M2 4.25A2.25 2.25 0 0 1 4.25 2h11.5A2.25 2.25 0 0 1 18 4.25v8.5A2.25 2.25 0 0 1 15.75 15h-3.105a3.501 3.501 0 0 0 1.1 1.677A.75.75 0 0 1 13.26 18H6.74a.75.75 0 0 1-.484-1.323A3.501 3.501 0 0 0 7.355 15H4.25A2.25 2.25 0 0 1 2 12.75v-8.5Zm6.75 6.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+                </svg>
+              }
+            />
             {OTHER_CHANNELS.map((ch) => {
               const connected = connectedSet.has(ch.id);
               return (
@@ -224,25 +238,8 @@ export default async function SettingsPage() {
 
         {/* Notifications */}
         <Card shadow padded style={{ marginBottom: '1.25rem' }}>
-          <h2 className={styles.sectionTitle}>Notifications</h2>
-          {Object.keys(notificationConfig).length === 0 ? (
-            <p className={styles.sectionBody}>
-              No notification settings configured yet.
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {Object.entries(notificationConfig).map(([key, value]) => (
-                <div key={key}>
-                  <div style={{ fontFamily: 'var(--type-dr-label-medium-font-family)', fontSize: 'var(--type-dr-label-medium-font-size)', color: 'var(--color-on-surface-variant)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.125rem' }}>
-                    {key.replace(/_/g, ' ')}
-                  </div>
-                  <div style={{ fontSize: 'var(--type-dr-body-medium-font-size)' }}>
-                    {typeof value === 'string' ? value : JSON.stringify(value)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <h2 className={styles.sectionTitle} style={{ marginBottom: '1rem' }}>Notifications</h2>
+          <NotificationSettingsForm initialConfig={notificationConfig} />
         </Card>
 
         {/* Security */}

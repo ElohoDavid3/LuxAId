@@ -9,7 +9,7 @@ import {
 } from '@prisma/client';
 import { prisma } from '../src/lib/prisma';
 import { AppError } from '../src/lib/errors';
-import { resetDatabase, createUserInBusiness, TEST_PASSWORD } from './helpers';
+import { resetDatabase, createUserInBusiness, TEST_PASSWORD, markOrderPaid } from './helpers';
 import { createCustomer } from '../src/features/customers/customer.service';
 import { createProduct } from '../src/features/products/product.service';
 import { setStock } from '../src/features/products/inventory.service';
@@ -184,13 +184,14 @@ describe('Failure Scenarios', () => {
       ).rejects.toMatchObject({ code: 'STATE_CONFLICT' });
     });
 
-    it('valid transition chain: AWAITING_PAYMENT → PAID → PROCESSING → CANCELLED', async () => {
+    it('valid transition chain: verified payment → PAID → PROCESSING → CANCELLED', async () => {
       const { user, business, customer, variant } = await setupTestBusiness();
       const order = await createOrderInBusiness(
         user.id, business.id, customer.id, variant.id,
       );
 
-      await orderService.updateStatus(user.id, business.id, order.id, OrderStatus.PAID);
+      // PAID is only reachable via the server-verified payment path.
+      await markOrderPaid(order.id);
       let fresh = await prisma.order.findUnique({ where: { id: order.id } });
       expect(fresh?.status).toBe(OrderStatus.PAID);
 
@@ -209,7 +210,8 @@ describe('Failure Scenarios', () => {
         user.id, business.id, customer.id, variant.id,
       );
 
-      await orderService.updateStatus(user.id, business.id, order.id, OrderStatus.PAID);
+      // PAID is only reachable via the server-verified payment path.
+      await markOrderPaid(order.id);
       await orderService.updateStatus(user.id, business.id, order.id, OrderStatus.PROCESSING);
       await orderService.updateStatus(user.id, business.id, order.id, OrderStatus.READY_FOR_DELIVERY);
       await orderService.updateStatus(user.id, business.id, order.id, OrderStatus.SHIPPED);
@@ -394,7 +396,12 @@ describe('Failure Scenarios', () => {
       const order = await createOrderInBusiness(
         user.id, business.id, customer.id, variant.id,
       );
-      await orderService.updateStatus(user.id, business.id, order.id, OrderStatus.PAID);
+      // Simulate an out-of-band state change (order already PAID) — PAID is
+      // not reachable through updateStatus, which enforces server verification.
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { status: OrderStatus.PAID },
+      });
 
       const txRef = `tx_state_conflict_${Date.now()}_${testCounter}`;
       await prisma.paymentAttempt.create({

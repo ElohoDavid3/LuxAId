@@ -57,13 +57,15 @@ export async function handleIncomingMessage(params: {
     { limit: 20 },
   );
 
-  const historyMessages: LLMMessage[] = historyResult.items.map((m) => ({
-    role: m.authorType === 'CUSTOMER' ? 'user' : 'assistant',
-    content:
-      m.authorType === 'HUMAN'
-        ? `[Human agent]: ${m.body}`
-        : m.body,
-  }));
+  const historyMessages: LLMMessage[] = historyResult.items
+    .filter((m) => m.authorType !== 'SYSTEM')
+    .map((m) => ({
+      role: m.authorType === 'CUSTOMER' ? 'user' : 'assistant',
+      content:
+        m.authorType === 'HUMAN'
+          ? `[Human agent]: ${m.body}`
+          : m.body,
+    }));
 
   const messages: LLMMessage[] = [
     ...historyMessages,

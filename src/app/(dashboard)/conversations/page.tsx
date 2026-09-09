@@ -12,7 +12,10 @@ export const metadata: Metadata = { title: 'Conversations' };
 async function getConversations(businessId: string, filter?: string) {
   const where: Record<string, unknown> = { businessId };
   if (filter === 'escalated') {
-    where.controlState = 'PENDING_HANDOFF';
+    where.OR = [
+      { controlState: 'PENDING_HANDOFF' },
+      { escalations: { some: { status: { in: ['OPEN', 'ASSIGNED'] } } } },
+    ];
   } else if (filter === 'ai') {
     where.controlState = 'AI_CONTROLLED';
   } else if (filter === 'human') {

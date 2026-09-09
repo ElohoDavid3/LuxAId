@@ -5,6 +5,7 @@ import { requireDashboardSession } from '@/lib/session';
 import { Card } from '@/components/Card/Card';
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge';
 import { Button } from '@/components/Button/Button';
+import { ReplyForm } from './ReplyForm';
 import styles from '../conversations.module.css';
 
 export const metadata: Metadata = { title: 'Conversation' };
@@ -101,7 +102,7 @@ export default async function ConversationDetailPage({
                 </div>
               )}
 
-              {/* Action bar */}
+              {/* Action bar & Reply Form */}
               <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--color-outline-variant)' }}>
                 <div className={styles.actionBar}>
                   {isPendingHandoff && (
@@ -127,6 +128,9 @@ export default async function ConversationDetailPage({
                     </span>
                   )}
                 </div>
+                {(isHumanControlled || isPendingHandoff) && (
+                  <ReplyForm conversationId={conversation.id} />
+                )}
               </div>
             </Card>
           </div>

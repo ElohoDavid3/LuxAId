@@ -304,3 +304,31 @@ export async function reassignEscalation(
 
   return updated;
 }
+
+export async function listEscalations(
+  userId: string,
+  requestedBusinessId: string,
+  status?: EscalationStatus,
+) {
+  const membership = await resolveMembership(userId, requestedBusinessId);
+  return prisma.escalation.findMany({
+    where: {
+      businessId: membership.businessId,
+      ...(status ? { status } : {}),
+    },
+    include: {
+      conversation: {
+        include: {
+          customer: { select: { id: true, name: true, phone: true } },
+          messages: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            select: { body: true },
+          },
+        },
+      },
+      assignee: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}

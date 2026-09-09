@@ -22,6 +22,7 @@ export type ErrorCode =
   | 'AI_UNCERTAIN'
   | 'HUMAN_ESCALATION_REQUIRED'
   | 'INTEGRATION_FAILURE'
+  | 'NOT_FOUND'
   | 'INTERNAL_ERROR';
 
 const HTTP_STATUS: Record<ErrorCode, number> = {
@@ -48,6 +49,7 @@ const HTTP_STATUS: Record<ErrorCode, number> = {
   AI_UNCERTAIN: 500,
   HUMAN_ESCALATION_REQUIRED: 500,
   INTEGRATION_FAILURE: 502,
+  NOT_FOUND: 404,
   INTERNAL_ERROR: 500,
 };
 

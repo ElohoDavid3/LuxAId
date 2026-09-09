@@ -155,14 +155,18 @@ export async function updateStatus(
 ) {
   await requireScope(userId, businessId, 'orders');
 
+  // PAID is intentionally absent here: an order may only reach PAID through
+  // the server-side Flutterwave verification path (applyVerifiedPayment).
+  // REFUNDED is likewise only reachable from a provider-confirmed refund.
   const allowed: Record<string, string[]> = {
     DRAFT: ['AWAITING_PAYMENT'],
-    AWAITING_PAYMENT: ['PAID', 'CANCELLED'],
+    AWAITING_PAYMENT: ['CANCELLED'],
     PAID: ['PROCESSING', 'CANCELLED'],
     PROCESSING: ['READY_FOR_DELIVERY', 'CANCELLED'],
     READY_FOR_DELIVERY: ['SHIPPED', 'CANCELLED'],
     SHIPPED: ['DELIVERED'],
-    DELIVERED: [],
+    DELIVERED: ['RETURNED'],
+    RETURNED: [],
     CANCELLED: [],
     FAILED: [],
     REFUNDED: [],

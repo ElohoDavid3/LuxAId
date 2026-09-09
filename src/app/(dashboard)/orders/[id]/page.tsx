@@ -6,6 +6,7 @@ import { requireDashboardSession } from '@/lib/session';
 import { Card } from '@/components/Card/Card';
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge';
 import { Button } from '@/components/Button/Button';
+import { OrderStatusUpdater } from './OrderStatusUpdater';
 import styles from '../orders.module.css';
 
 export const metadata: Metadata = { title: 'Order detail' };
@@ -163,9 +164,7 @@ export default async function OrderDetailPage({
             <Card shadow padded>
               <div className={styles.detailLabel} style={{ marginBottom: '0.75rem' }}>Actions</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                <Button variant="primary" style={{ width: '100%' }} disabled>
-                  Update status
-                </Button>
+                <OrderStatusUpdater orderId={order.id} currentStatus={order.status} />
                 <Link href={`/conversations?orderId=${order.id}`}>
                   <Button variant="ghost" style={{ width: '100%' }}>
                     View conversations

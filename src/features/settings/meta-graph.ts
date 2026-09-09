@@ -9,6 +9,7 @@ export interface MetaGraphVerification {
   username?: string;
   display_phone_number?: string;
   verified_name?: string;
+  name?: string;
   error?: { message?: string; type?: string; code?: number };
 }
 

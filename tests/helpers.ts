@@ -1,11 +1,56 @@
 import { prisma } from '../src/lib/prisma';
 import { hashPassword } from '../src/features/auth/password.service';
-import { MembershipRole, MembershipStatus } from '@prisma/client';
+import { applyVerifiedPayment } from '../src/features/payments/payment.service';
+import { MembershipRole, MembershipStatus, PaymentAttemptStatus } from '@prisma/client';
 
 export const TEST_PASSWORD = 'Correct-horse-battery-1';
 
 export async function resetDatabase(): Promise<void> {
   await prisma.$executeRawUnsafe('TRUNCATE TABLE "Business", "User" CASCADE');
+}
+
+/**
+ * Transition an order to PAID through the verified payment path only.
+ *
+ * Mirrors the production guarantee that PAID is reachable exclusively via
+ * server-side payment verification (applyVerifiedPayment), not updateStatus.
+ */
+export async function markOrderPaid(
+  orderId: string,
+  providerTransactionId: string | number = `provider_${Date.now()}`,
+): Promise<void> {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) throw new Error(`markOrderPaid: order ${orderId} not found`);
+
+  const transactionReference = `tx_test_paid_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+
+  await prisma.paymentAttempt.create({
+    data: {
+      businessId: order.businessId,
+      orderId: order.id,
+      status: PaymentAttemptStatus.PENDING,
+      amount: order.totalAmount,
+      currency: 'NGN',
+      transactionReference,
+    },
+  });
+
+  const outcome = await applyVerifiedPayment({
+    transactionReference,
+    providerTransactionId,
+    verifiedAmountInKobo: order.totalAmount,
+    verifiedCurrency: 'NGN',
+    verifiedStatus: 'successful',
+    providerVerification: { source: 'test-helper' },
+  });
+
+  if (outcome.outcome !== 'APPLIED') {
+    throw new Error(
+      `markOrderPaid failed for order ${orderId}: ${outcome.outcome}`,
+    );
+  }
 }
 
 export async function createUser(

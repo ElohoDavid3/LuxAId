@@ -74,6 +74,7 @@ export function ChannelConnection({
         error?: string;
         displayPhoneNumber?: string;
         username?: string;
+        pageName?: string;
       } | null;
 
       if (!res.ok) {
@@ -82,7 +83,9 @@ export function ChannelConnection({
       }
 
       setConnected(true);
-      setDisplayLabel(data?.displayPhoneNumber ?? data?.username ?? '');
+      setDisplayLabel(
+        data?.displayPhoneNumber ?? data?.username ?? data?.pageName ?? '',
+      );
       closeForm();
       router.refresh();
     } catch {

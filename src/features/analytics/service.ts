@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { OrderStatus } from '@prisma/client';
 
 export interface AnalyticsSummary {
   totalRevenue: number;
@@ -36,10 +37,23 @@ export interface ConversationMetrics {
   avgMessagesPerConversation: number;
 }
 
+// A draft is not yet a real order: the customer has not submitted it.
+// Cancelled orders never produced revenue and are excluded from headline
+// order volume so the dashboard metric reflects actual commerce.
+const ORDER_VOLUME_STATUSES = [
+  OrderStatus.AWAITING_PAYMENT,
+  OrderStatus.PAID,
+  OrderStatus.PROCESSING,
+  OrderStatus.READY_FOR_DELIVERY,
+  OrderStatus.SHIPPED,
+  OrderStatus.DELIVERED,
+];
+
 export async function getAnalyticsSummary(businessId: string): Promise<AnalyticsSummary> {
   const [
     revenueResult,
     totalOrders,
+    paidOrderCount,
     totalCustomers,
     activeProducts,
     successfulPayments,
@@ -47,9 +61,14 @@ export async function getAnalyticsSummary(businessId: string): Promise<Analytics
   ] = await Promise.all([
     prisma.order.aggregate({
       _sum: { totalAmount: true },
-      where: { businessId, status: 'PAID' },
+      where: { businessId, status: OrderStatus.PAID },
     }),
-    prisma.order.count({ where: { businessId } }),
+    prisma.order.count({
+      where: { businessId, status: { in: ORDER_VOLUME_STATUSES } },
+    }),
+    prisma.order.count({
+      where: { businessId, status: OrderStatus.PAID },
+    }),
     prisma.customer.count({ where: { businessId } }),
     prisma.product.count({ where: { businessId, status: 'ACTIVE' } }),
     prisma.paymentAttempt.count({
@@ -62,8 +81,10 @@ export async function getAnalyticsSummary(businessId: string): Promise<Analytics
   const paymentSuccessRate = totalPayments > 0
     ? Math.round((successfulPayments / totalPayments) * 100)
     : 0;
-  const averageOrderValue = totalOrders > 0
-    ? Math.round(totalRevenue / totalOrders)
+  // Revenue is only ever earned from paid orders, so AOV must divide by
+  // paid order count — otherwise unpaid/abandoned orders dilute the figure.
+  const averageOrderValue = paidOrderCount > 0
+    ? Math.round(totalRevenue / paidOrderCount)
     : 0;
 
   return {
@@ -78,65 +99,64 @@ export async function getAnalyticsSummary(businessId: string): Promise<Analytics
 
 export async function getRevenueByDay(businessId: string, days: number = 7): Promise<DailyRevenue[]> {
   const now = new Date();
-  const results: DailyRevenue[] = [];
+  const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1));
 
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+  const orders = await prisma.order.findMany({
+    where: {
+      businessId,
+      status: OrderStatus.PAID,
+      createdAt: { gte: startDate },
+    },
+    select: {
+      createdAt: true,
+      totalAmount: true,
+    },
+  });
 
-    const [revenueResult, orderCount] = await Promise.all([
-      prisma.order.aggregate({
-        _sum: { totalAmount: true },
-        where: {
-          businessId,
-          status: 'PAID',
-          createdAt: { gte: startOfDay, lt: endOfDay },
-        },
-      }),
-      prisma.order.count({
-        where: {
-          businessId,
-          createdAt: { gte: startOfDay, lt: endOfDay },
-        },
-      }),
-    ]);
-
-    results.push({
-      date: startOfDay.toISOString().split('T')[0],
-      revenue: revenueResult._sum.totalAmount ?? 0,
-      orders: orderCount,
-    });
+  function toLocalDateStr(d: Date): string {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
-  return results;
+  const dailyMap = new Map<string, { revenue: number; orders: number }>();
+  for (let i = 0; i < days; i++) {
+    const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i);
+    dailyMap.set(toLocalDateStr(d), { revenue: 0, orders: 0 });
+  }
+
+  // Only PAID orders earn revenue; the daily chart counts paid orders only so
+  // "orders" and "revenue" describe the same set of transactions.
+  for (const order of orders) {
+    const dateStr = toLocalDateStr(order.createdAt);
+    const entry = dailyMap.get(dateStr);
+    if (entry) {
+      entry.orders += 1;
+      entry.revenue += order.totalAmount;
+    }
+  }
+
+  return Array.from(dailyMap.entries()).map(([date, data]) => ({
+    date,
+    revenue: data.revenue,
+    orders: data.orders,
+  }));
 }
 
 export async function getOrderStatusBreakdown(businessId: string): Promise<OrderStatusBreakdown[]> {
-  const statuses = [
-    'DRAFT', 'AWAITING_PAYMENT', 'PAID', 'PROCESSING',
-    'READY_FOR_DELIVERY', 'SHIPPED', 'DELIVERED',
-    'RETURNED', 'CANCELLED', 'FAILED', 'REFUNDED',
-  ];
+  const grouped = await prisma.order.groupBy({
+    by: ['status'],
+    _count: { _all: true },
+    _sum: { totalAmount: true },
+    where: { businessId },
+  });
 
-  const results = await Promise.all(
-    statuses.map(async (status) => {
-      const [count, amountResult] = await Promise.all([
-        prisma.order.count({ where: { businessId, status: status as never } }),
-        prisma.order.aggregate({
-          _sum: { totalAmount: true },
-          where: { businessId, status: status as never },
-        }),
-      ]);
-      return {
-        status,
-        count,
-        totalAmount: amountResult._sum.totalAmount ?? 0,
-      };
-    })
-  );
-
-  return results.filter((r) => r.count > 0);
+  return grouped.map((g) => ({
+    status: g.status,
+    count: g._count._all,
+    totalAmount: g._sum.totalAmount ?? 0,
+  }));
 }
 
 export async function getTopProducts(businessId: string, limit: number = 5): Promise<TopProduct[]> {
@@ -144,7 +164,10 @@ export async function getTopProducts(businessId: string, limit: number = 5): Pro
     by: ['productId'],
     _sum: { unitPrice: true, quantity: true },
     _count: { id: true },
-    where: { businessId },
+    where: {
+      businessId,
+      order: { status: OrderStatus.PAID },
+    },
     orderBy: { _sum: { unitPrice: 'desc' } },
     take: limit,
   });
@@ -167,19 +190,20 @@ export async function getTopProducts(businessId: string, limit: number = 5): Pro
 }
 
 export async function getConversationMetrics(businessId: string): Promise<ConversationMetrics> {
-  const [totalConversations, aiControlled, humanControlled] = await Promise.all([
+  const [totalConversations, escalatedConversations, messageCount] = await Promise.all([
     prisma.conversation.count({ where: { businessId } }),
-    prisma.conversation.count({
-      where: { businessId, controlState: 'AI_CONTROLLED' },
+    prisma.escalation.groupBy({
+      by: ['conversationId'],
+      where: { businessId },
+      _count: { conversationId: true },
     }),
-    prisma.conversation.count({
-      where: { businessId, controlState: 'HUMAN_CONTROLLED' },
-    }),
+    prisma.message.count({ where: { businessId } }),
   ]);
 
-  const messageCount = await prisma.message.count({
-    where: { businessId },
-  });
+  // A conversation only ever needed a human if it produced an Escalation
+  // record. Everything else is attributed to AI (it never required a human).
+  const humanEscalated = escalatedConversations.length;
+  const aiResolved = Math.max(0, totalConversations - humanEscalated);
 
   const avgMessagesPerConversation = totalConversations > 0
     ? Math.round((messageCount / totalConversations) * 10) / 10
@@ -187,8 +211,8 @@ export async function getConversationMetrics(businessId: string): Promise<Conver
 
   return {
     totalConversations,
-    aiResolved: aiControlled,
-    humanEscalated: humanControlled,
+    aiResolved,
+    humanEscalated,
     avgMessagesPerConversation,
   };
 }

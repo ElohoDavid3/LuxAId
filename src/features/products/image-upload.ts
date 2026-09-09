@@ -44,7 +44,6 @@ async function storeLocally(
   businessId: string,
   buffer: Buffer,
   extension: string,
-  contentType: string,
 ): Promise<UploadedProductImage> {
   const dir = join(process.cwd(), 'public', 'uploads', 'products', businessId);
   await mkdir(dir, { recursive: true });
@@ -92,7 +91,7 @@ export async function uploadProductImage(
     if (env.BLOB_READ_WRITE_TOKEN) {
       return await storeOnVercelBlob(pathname, buffer, file.type);
     }
-    return await storeLocally(businessId, buffer, extension, file.type);
+    return await storeLocally(businessId, buffer, extension);
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError(

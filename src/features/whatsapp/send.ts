@@ -159,3 +159,134 @@ export async function sendWhatsAppReply(
     logger.warn('whatsapp.send.system_user_missing', { businessId });
   }
 }
+
+interface SendHumanReplyParams {
+  businessId: string;
+  conversationId: string;
+  messageId: string;
+  customerId: string;
+  replyText: string;
+}
+
+/**
+ * Send a HUMAN-authored reply to the customer via WhatsApp.
+ *
+ * Unlike sendWhatsAppReply (which is AI-authored and gated on the conversation
+ * being AI_CONTROLLED), this path is used when a human has taken control of the
+ * conversation. It checks consent and the 24-hour window, transmits the reply,
+ * and updates the already-persisted human message with the provider message ID.
+ * It never creates a second, mis-labelled AI message.
+ */
+export async function sendHumanWhatsAppReply(
+  params: SendHumanReplyParams,
+): Promise<void> {
+  const { businessId, conversationId, messageId, customerId, replyText } =
+    params;
+
+  if (!replyText || replyText.trim().length === 0) return;
+
+  const customer = await prisma.customer.findFirst({
+    where: { id: customerId, businessId },
+    select: { id: true, consentStatus: true, phone: true },
+  });
+
+  if (!customer) {
+    logger.warn('whatsapp.send_human.customer_not_found', {
+      businessId,
+      customerId,
+    });
+    throw new AppError('UNKNOWN_CUSTOMER', 'Customer not found.');
+  }
+
+  if (customer.consentStatus === 'OPTED_OUT') {
+    logger.info('whatsapp.send_human.customer_opted_out', {
+      businessId,
+      customerId,
+    });
+    return;
+  }
+
+  if (!customer.phone) {
+    logger.warn('whatsapp.send_human.no_phone', { businessId, customerId });
+    throw new AppError(
+      'VALIDATION_ERROR',
+      'Customer has no phone number to reach them on.',
+    );
+  }
+
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: conversationId, businessId },
+    select: { id: true, lastInboundAt: true },
+  });
+
+  if (!conversation) {
+    logger.warn('whatsapp.send_human.conversation_not_found', {
+      businessId,
+      conversationId,
+    });
+    throw new AppError('UNKNOWN_CONVERSATION', 'Conversation not found.');
+  }
+
+  let providerMessageId = '';
+
+  try {
+    const config = await getWhatsAppConfig(businessId);
+    const withinWindow =
+      conversation.lastInboundAt &&
+      Date.now() - conversation.lastInboundAt.getTime() < FREE_FORM_WINDOW_MS;
+
+    if (withinWindow) {
+      const result = await sendTextMessage({
+        businessId,
+        phoneNumberId: config.phoneNumberId,
+        accessToken: config.accessToken,
+        to: customer.phone,
+        conversationId,
+        text: replyText,
+      });
+      providerMessageId = result.providerMessageId;
+    } else {
+      const result = await sendTemplateMessage({
+        businessId,
+        phoneNumberId: config.phoneNumberId,
+        accessToken: config.accessToken,
+        to: customer.phone,
+        templateName: config.replyTemplateName || 'orderaid_reply',
+        languageCode: 'en_US',
+        parameters: [{ type: 'text', text: replyText }],
+      });
+      providerMessageId = result.providerMessageId;
+    }
+  } catch {
+    logger.error('whatsapp.send_human.failed', {
+      businessId,
+      conversationId,
+      customerId,
+    });
+    throw new AppError(
+      'INTEGRATION_FAILURE',
+      'Failed to send WhatsApp reply.',
+    );
+  }
+
+  // Update the already-persisted human message with the real provider ID.
+  if (providerMessageId) {
+    await prisma.message.updateMany({
+      where: { id: messageId, businessId, conversationId },
+      data: { providerMessageId },
+    });
+  }
+
+  await logAudit({
+    businessId,
+    eventType: 'WHATSAPP_HUMAN_REPLY_SENT',
+    actorType: 'HUMAN',
+    payload: {
+      conversationId,
+      customerId,
+      messageId,
+      providerMessageId,
+      replyLength: replyText.length,
+    },
+  });
+}
